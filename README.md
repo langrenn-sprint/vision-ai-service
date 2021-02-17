@@ -65,6 +65,8 @@ Options:
 ```
 % poetry shell
 % sprint_photopusher --help
+### Test start: sprint_photopusher -d tests/files/input/ http:resultat.skagenoslosprint.no
+
 ```
 Alternatively you can use `poetry run`:
 ```

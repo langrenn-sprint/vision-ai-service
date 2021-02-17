@@ -8,7 +8,7 @@ import click
 
 from dotenv import load_dotenv
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from PIL.ExifTags import TAGS
 
 import pandas as pd
@@ -160,6 +160,28 @@ def create_thumb(infile: str) -> None:
     except OSError:
         logging.info(f"cannot create thumbnail for {infile} {OSError}")
 
+def watermark_image(infile: str):
+    """Convert file content to json and push to webserver at url."""
+    try:
+        # TODO - need to enhance name & move to folder thumbs
+        outfile = infile.replace("input/", "output/")
+
+        tatras = Image.open(infile)
+        idraw = ImageDraw.Draw(tatras)
+        text = "Ragdesprinten 2021, Kjelsås langrenn"
+
+        font = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", size=120)
+        idraw.text((tatras.width/2, tatras.height - 200), text, font=font)
+        tatras.save(outfile)
+        logging.info("Watermarked file: " + outfile)
+    except Exception:
+        logging.info("Unable to watermark image ")
+        logging.info(Exception)
+        return "Error"
+
+
+    return "Success"
+
 def create_tags(infile: str) -> dict:
     """Create dictionary with relevant tags."""
     _tags = {}
@@ -176,11 +198,12 @@ def create_tags(infile: str) -> dict:
                 elif tag == "DateTime":
                     _tags[tag] = data
             # look for information in filename
-            locationtags = ["start", "løype", "mål", "premieutdeling", "presse"]
+            locationtags = ["start", "løype", "mål", "premie", "presse"]
             _filename = infile.lower();
             for location in locationtags:
                 if location in _filename:
                     _tags["Location"] = location
+                    logging.debug(f"Location found: {location}")
     except OSError:
         logging.info("Image error ", OSError)
     return _tags
@@ -197,6 +220,7 @@ def handle_photo(url, src_path: Any) -> None:
         create_thumb(src_path)
 
         # add watermark
+        watermark_image(src_path)
 
         # upload files
 
