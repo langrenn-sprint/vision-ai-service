@@ -1,14 +1,14 @@
 """Module for cli application monitoring directory and send json to webserver."""
+from ftplib import FTP
 import logging
 import os
 import time
 from typing import Any
-from ftplib import FTP
-
-import click
 
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ExifTags import TAGS
+
+import click
 
 from dotenv import load_dotenv
 
@@ -135,24 +135,26 @@ class EventHandler(FileSystemEventHandler):
         if not event.is_directory:
             handle_photo(self.url, event.src_path)
 
+
 def ftp_upload(infile: str, outfile: str) -> str:
     """Upload file to ftp server, return url to file."""
 
-    photoftpdest = os.environ['PHOTO_FTP_DEST']
+    photoftpdest = os.environ["PHOTO_FTP_DEST"]
     logging.debug(f"FTP dest: {photoftpdest}")
-    photoftpuid = os.environ['PHOTO_FTP_UID']
+    photoftpuid = os.environ["PHOTO_FTP_UID"]
     logging.debug(f"FTP user: {photoftpuid}")
-    photoftppw = os.environ['PHOTO_FTP_PW']
+    photoftppw = os.environ["PHOTO_FTP_PW"]
 
     session = FTP(photoftpdest, photoftpuid, photoftppw)
-    file = open(infile,'rb')                  # file to send
-    session.storbinary('STOR ' + outfile, file)     # send the file
-    file.close()                                    # close file and FTP
+    file = open(infile, "rb")  # file to send
+    session.storbinary("STOR " + outfile, file)  # send the file
+    file.close()  # close file and FTP
     session.quit()
 
     url = "http://www.harnaes.no/sprint/" + outfile
     logging.info(f"FTP Upload file {url}")
     return url
+
 
 def create_thumb(infile: str, outfile) -> None:
     """Create thumb from infile."""
@@ -185,7 +187,7 @@ def watermark_image(infile: str, outfile: str) -> None:
 
 
 def create_tags(infile: str) -> dict:
-    """Reads infile and returns dictionary with relevant tags."""
+    """Read infile, return dict with relevant tags."""
     _tags = {}
     try:
         with Image.open(infile) as im:
@@ -269,7 +271,7 @@ def find_url_datafile_type(url: str, src_path: str) -> tuple:
 
 
 def convert_csv_to_json(src_path: str, datafile_type: str) -> str:
-    """Convert content of csv file to json."""
+    """Convert content of src_path datafile_type file, return json."""
     if datafile_type == "deltakere":
         # read the csv into a dataframe, and skip the first row:
         df = pd.read_csv(src_path, sep=";", encoding="utf-8", dtype=str)
