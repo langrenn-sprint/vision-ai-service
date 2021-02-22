@@ -3,13 +3,14 @@ import logging
 import os
 import time
 from typing import Any
+from ftplib import FTP
 
 import click
 
-from dotenv import load_dotenv
-
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ExifTags import TAGS
+
+from dotenv import load_dotenv
 
 import pandas as pd
 
@@ -134,22 +135,28 @@ class EventHandler(FileSystemEventHandler):
         if not event.is_directory:
             handle_photo(self.url, event.src_path)
 
-    def on_modified(self, event: FileSystemEvent) -> None:
-        """Handle file modification events."""
-        super(EventHandler, self).on_modified(event)
+def ftp_upload(infile: str, outfile: str) -> str:
+    """Upload file to ftp server, return url to file."""
 
-        if not event.is_directory:
-            handle_photo(self.url, event.src_path)
+    photoftpdest = os.environ['PHOTO_FTP_DEST']
+    logging.debug(f"FTP dest: {photoftpdest}")
+    photoftpuid = os.environ['PHOTO_FTP_UID']
+    logging.debug(f"FTP user: {photoftpuid}")
+    photoftppw = os.environ['PHOTO_FTP_PW']
 
+    session = FTP(photoftpdest, photoftpuid, photoftppw)
+    file = open(infile,'rb')                  # file to send
+    session.storbinary('STOR ' + outfile, file)     # send the file
+    file.close()                                    # close file and FTP
+    session.quit()
 
-def create_thumb(infile: str) -> None:
-    """Create file thumbnail."""
+    url = "http://www.harnaes.no/sprint/" + outfile
+    logging.info(f"FTP Upload file {url}")
+    return url
+
+def create_thumb(infile: str, outfile) -> None:
+    """Create thumb from infile."""
     size = (180, 180)
-    # TODO - need to enhance name & move to folder thumbs
-    filename = infile.split("/")[-1]
-    directory = infile.replace("input/" + filename, "")
-    outfile = directory + "thumbs/thumb_" + filename
-    logging.debug(f"outfile thumb:  {outfile} ")
 
     try:
         with Image.open(infile) as im:
@@ -160,30 +167,25 @@ def create_thumb(infile: str) -> None:
     except OSError:
         logging.info(f"cannot create thumbnail for {infile} {OSError}")
 
-def watermark_image(infile: str):
-    """Convert file content to json and push to webserver at url."""
-    try:
-        # TODO - need to enhance name & move to folder thumbs
-        outfile = infile.replace("input/", "output/")
 
+def watermark_image(infile: str, outfile: str) -> None:
+    """Watermark to infile and move to output folder."""
+    try:
         tatras = Image.open(infile)
         idraw = ImageDraw.Draw(tatras)
-        text = "Ragdesprinten 2021, Kjelsås langrenn"
+        text = "Ragdesprinten 2021, Kjelsås IL"
 
         font = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", size=120)
-        idraw.text((tatras.width/2, tatras.height - 200), text, font=font)
+        idraw.text((tatras.width / 2, tatras.height - 200), text, font=font)
         tatras.save(outfile)
         logging.info("Watermarked file: " + outfile)
     except Exception:
         logging.info("Unable to watermark image ")
         logging.info(Exception)
-        return "Error"
 
-
-    return "Success"
 
 def create_tags(infile: str) -> dict:
-    """Create dictionary with relevant tags."""
+    """Reads infile and returns dictionary with relevant tags."""
     _tags = {}
     try:
         with Image.open(infile) as im:
@@ -198,8 +200,8 @@ def create_tags(infile: str) -> dict:
                 elif tag == "DateTime":
                     _tags[tag] = data
             # look for information in filename
-            locationtags = ["start", "løype", "mål", "premie", "presse"]
-            _filename = infile.lower();
+            locationtags = ["start", "race", "finish", "prize", "press"]
+            _filename = infile.lower()
             for location in locationtags:
                 if location in _filename:
                     _tags["Location"] = location
@@ -209,30 +211,37 @@ def create_tags(infile: str) -> dict:
     return _tags
 
 
-def handle_photo(url, src_path: Any) -> None:
+def handle_photo(url: str, src_path: Any) -> None:
     """Convert file content to json and push to webserver at url."""
     _url, datafile_type = find_url_datafile_type(url, src_path)
     logging.info(f"Server url: {_url} - datafile: {datafile_type}")
 
     if _url:
 
-        # create thumb
-        create_thumb(src_path)
-
-        # add watermark
-        watermark_image(src_path)
-
-        # upload files
-
-        # update webserver and link to results
-        tags = create_tags(src_path)
-        logging.info(f"Tags {tags}")
-
-        body = "test"
-        headers = {"content-type": "application/json; charset=utf-8"}
-        logging.info(f"sending body {body}")
         try:
-            logging.info("Push - test")
+            # TODO - need to enhance name & move to folder thumbs
+            filename = src_path.split(os.path.sep)[-1]
+
+            # create thumb
+            directory = src_path.replace("input/" + filename, "")
+            outfile_thumb = directory + "thumbs/thumb_" + filename
+            create_thumb(src_path, outfile_thumb)
+
+            # add watermark
+            outfile_main = src_path.replace("input/", "output/")
+            watermark_image(src_path, outfile_main)
+
+            # upload files
+            ftp_upload(outfile_main, filename)
+            ftp_upload(outfile_thumb, "thumb_" + filename)
+
+            # update webserver and link to results
+            tags = create_tags(src_path)
+            logging.info(f"Tags {tags}")
+
+            body = "test"
+            headers = {"content-type": "application/json; charset=utf-8"}
+            logging.info(f"sending body {body}")
             # response = requests.post(_url, headers=headers, data=body)
             # if response.status_code == 201:
             #    logging.debug(
@@ -247,13 +256,13 @@ def handle_photo(url, src_path: Any) -> None:
 
 
 def find_url_datafile_type(url: str, src_path: str) -> tuple:
-    """Determine url and datafile_type based src_path."""
+    """Determine and return url and datafile_type based src_path."""
     datafile_type = ""
     _url = ""
-    if ".jpg" in src_path.split("/")[-1]:
+    if ".jpg" in src_path.split(os.path.sep)[-1]:
         _url = f"{url}/photo"
         datafile_type = "jpg"
-    elif ".JPG" in src_path.split("/")[-1]:
+    elif ".JPG" in src_path.split(os.path.sep)[-1]:
         _url = f"{url}/photo"
         datafile_type = "jpg"
     return _url, datafile_type

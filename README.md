@@ -48,6 +48,11 @@ Options:
 
 ### Install
 ```
+Set environmen variable
+% export PHOTO_FTP_DEST=ftp.harnaes.no
+% export PHOTO_FTP_UID=*** # must be replaced
+% export PHOTO_FTP_PW=*** # must be replaced
+
 % git clone https://github.com/heming-langrenn/sprint-excel.git
 % cd sprint-excel/photopusher
 % pyenv local 3.9.1 3.7.9
@@ -65,7 +70,7 @@ Options:
 ```
 % poetry shell
 % sprint_photopusher --help
-### Test start: sprint_photopusher -d tests/files/input/ http:resultat.skagenoslosprint.no
+### Test start: sprint_photopusher -d tests/files/input/ http://resultat.skagenoslosprint.no
 
 ```
 Alternatively you can use `poetry run`:
