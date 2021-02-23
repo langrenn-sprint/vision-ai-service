@@ -1,8 +1,9 @@
-"""Module for cli application monitoring directory and send json to webserver."""
-from ftplib import FTP
+"""Module for cli application monitoring directory and handle image."""
+import json
 import logging
 import os
 import time
+from ftplib import FTP
 from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
@@ -11,8 +12,6 @@ from PIL.ExifTags import TAGS
 import click
 
 from dotenv import load_dotenv
-
-import pandas as pd
 
 import requests
 
@@ -47,7 +46,7 @@ logging.basicConfig(
     ),
 )
 def cli(url: str, directory: Any) -> None:
-    """CLI for monitoring directory and send content of files as json to webserver URL.
+    """CLI for monitoring directory and send content of files as json.
 
     URL is the url to a webserver exposing an endpoint accepting your json.
 
@@ -60,7 +59,7 @@ def cli(url: str, directory: Any) -> None:
     # Check if webserver is alive:
     if _webserver_allive(url):
         click.echo(f"\nWorking directory {os.getcwd()}")
-        click.echo(f"Watching directory {os.path.join(os.getcwd(), directory)}")
+        click.echo(f"Watching {os.path.join(os.getcwd(), directory)}")
         click.echo(f"Sending data to webserver at {url}")
     else:
         exit(2)
@@ -80,9 +79,7 @@ def _webserver_allive(url: str) -> bool:
             logging.info(f"Connected to {url}")
             return True
         else:
-            logging.error(
-                f"Webserver respondend with not ok status_code: {response.status_code}"
-            )
+            logging.error(f"Webserver error : {response.status_code}")
     except Exception:
         logging.error("Webserver not available. Exiting....")
     return False
@@ -92,7 +89,7 @@ class FileSystemMonitor:
     """Monitor directory and send content of files as json to webserver URL."""
 
     def __init__(self, url: str, directory: Any) -> None:
-        """Do init monitor of directory and verify url."""
+        """Init monitor of directory and verify url."""
         self.url = url
         self.path = directory
         self.handler = EventHandler(url)
@@ -115,7 +112,7 @@ class EventHandler(FileSystemEventHandler):
     """Custom eventhandler class."""
 
     def __init__(self, url: str) -> None:
-        """Initalize the monitor."""
+        """Init the monitor."""
         super(EventHandler, self).__init__()
         self.url = url
 
@@ -137,8 +134,7 @@ class EventHandler(FileSystemEventHandler):
 
 
 def ftp_upload(infile: str, outfile: str) -> str:
-    """Upload file to ftp server, return url to file."""
-
+    """Upload infile to outfile on ftp server, return url to file."""
     photoftpdest = os.environ["PHOTO_FTP_DEST"]
     logging.debug(f"FTP dest: {photoftpdest}")
     photoftpuid = os.environ["PHOTO_FTP_UID"]
@@ -171,7 +167,7 @@ def create_thumb(infile: str, outfile) -> None:
 
 
 def watermark_image(infile: str, outfile: str) -> None:
-    """Watermark to infile and move to output folder."""
+    """Watermark infile and move outfile to output folder."""
     try:
         tatras = Image.open(infile)
         idraw = ImageDraw.Draw(tatras)
@@ -241,9 +237,9 @@ def handle_photo(url: str, src_path: Any) -> None:
             tags = create_tags(src_path)
             logging.info(f"Tags {tags}")
 
-            body = "test"
+            #body = convert_tags_to_json(tags)
             headers = {"content-type": "application/json; charset=utf-8"}
-            logging.info(f"sending body {body}")
+            logging.info(f"sending body {tags}")
             # response = requests.post(_url, headers=headers, data=body)
             # if response.status_code == 201:
             #    logging.debug(
@@ -270,72 +266,10 @@ def find_url_datafile_type(url: str, src_path: str) -> tuple:
     return _url, datafile_type
 
 
-def convert_csv_to_json(src_path: str, datafile_type: str) -> str:
-    """Convert content of src_path datafile_type file, return json."""
-    if datafile_type == "deltakere":
-        # read the csv into a dataframe, and skip the first row:
-        df = pd.read_csv(src_path, sep=";", encoding="utf-8", dtype=str)
-        # drops the first row:
-        df = df.iloc[1:]
-        # drop all rows with no value:
-        df.dropna(subset=["Startnr"], inplace=True)
-        # drop columns with no values:
-        df.dropna(how="all", axis="columns", inplace=True)
+def convert_tags_to_json(tags: dict) -> str:
+    """Return json from tags in dict."""
+    # Serializing json
+    json_object = json.dumps(tags, indent = 4)
+    logging.info(f"Created json: {json_object}")
 
-    if datafile_type == "innstillinger":
-        # read the csv into a dataframe, and skip the first row:
-        df = pd.read_csv(src_path, sep=";", encoding="utf-8", dtype=str)
-        # drop all rows with no value:
-        df.dropna(subset=["Parameter"], inplace=True)
-        # drop columns with no values:
-        df.dropna(how="all", axis="columns", inplace=True)
-
-    # Kjoreplan.csv:
-    if datafile_type == "kjoreplan":
-        # read the csv into a dataframe, and skip the first row:
-        df = pd.read_csv(src_path, sep=";", encoding="utf-8", dtype=str)
-        # drop all rows with no value in (Heat) Index:
-        df.dropna(subset=["Index"], inplace=True)
-        # drop columns with no values:
-        df.dropna(how="all", axis="columns", inplace=True)
-
-    # Klasser.csv:
-    if datafile_type == "klasser":
-        # read the csv into a dataframe, and skip the first row:
-        df = pd.read_csv(src_path, sep=";", encoding="utf-8", dtype=str)
-        # drops the first row:
-        df = df.iloc[1:]
-        # drop all rows with no value in Klasse:
-        df.dropna(subset=["Klasse"], inplace=True)
-        # drop columns with no values:
-        df.dropna(how="all", axis="columns", inplace=True)
-
-    # Resultat heat:
-    if datafile_type == "resultat_heat":
-        # read the csv into a dataframe, and skip the first two rows:
-        df = pd.read_csv(src_path, sep=";", skiprows=2, encoding="utf-8", dtype=str)
-        # drop all rows with no value in Plass:
-        df.dropna(subset=["Plass"], inplace=True)
-
-    # Resultatliste:
-    if datafile_type == "resultat":
-        # read the csv into a dataframe, and skip the first row:
-        df = pd.read_csv(src_path, sep=";", skiprows=1, encoding="utf-8", dtype=str)
-        # drop all rows with no value in Plass:
-        df.dropna(subset=["Plass"], inplace=True)
-
-    # Startlists:
-    if datafile_type == "start":
-        # read the csv into a dataframe, and skip the first two rows:
-        df = pd.read_csv(src_path, sep=";", skiprows=2, encoding="utf-8", dtype=str)
-        # drop "headers" pr heat, i.e. rows with value "Heat" in column "Heat":
-        df = df[df["Heat"] != "Heat"]
-        # drop all rows with no value in Pos:
-        df.dropna(subset=["Pos"], inplace=True)
-
-    # For all types of files:
-    # reset index:
-    df.reset_index(drop=True, inplace=True)
-    logging.debug(df.to_json(orient="records", force_ascii=True))
-    # convert dataframe to json and return:
-    return df.to_json(orient="records", force_ascii=True)
+    return json_object
