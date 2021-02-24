@@ -125,7 +125,8 @@ class EventHandler(FileSystemEventHandler):
             f"{event.event_type} {what}: {event.src_path}",
         )
 
-    def on_created(self, event: FileSystemEvent) -> None:
+    # def on_created(self, event: FileSystemEvent) -> None:
+    def on_modified(self, event: FileSystemEvent) -> None:
         """Handle file creation events."""
         super(EventHandler, self).on_created(event)
 
@@ -194,7 +195,8 @@ def create_tags(infile: str) -> dict:
                 tag = TAGS.get(tag_id, tag_id)
                 data = exifdata.get(tag_id)
                 if tag == "GPSInfo":
-                    _tags[tag] = data
+                    logging.debug(f"GPSinfo: {data}")
+                    # _tags[tag] = data
                 elif tag == "DateTime":
                     _tags[tag] = data
             # look for information in filename
@@ -211,6 +213,7 @@ def create_tags(infile: str) -> dict:
 
 def handle_photo(url: str, src_path: Any) -> None:
     """Convert file content to json and push to webserver at url."""
+    tags = {}
     _url, datafile_type = find_url_datafile_type(url, src_path)
     logging.info(f"Server url: {_url} - datafile: {datafile_type}")
 
@@ -229,24 +232,28 @@ def handle_photo(url: str, src_path: Any) -> None:
             outfile_main = src_path.replace("input/", "output/")
             watermark_image(src_path, outfile_main)
 
-            # upload files
-            ftp_upload(outfile_main, filename)
-            ftp_upload(outfile_thumb, "thumb_" + filename)
-
             # update webserver and link to results
             tags = create_tags(src_path)
-            logging.info(f"Tags {tags}")
+            logging.info(f"Tags: {tags}")
 
-            #body = convert_tags_to_json(tags)
+            # upload files
+            photo_url = ""
+            photo_url = ftp_upload(outfile_main, filename)
+            tags["url_photo"] = photo_url
+            photo_url = ftp_upload(outfile_thumb, "thumb_" + filename)
+            tags["url_thumb"] = photo_url
+
+            # body = convert_tags_to_json(tags)
             headers = {"content-type": "application/json; charset=utf-8"}
-            logging.info(f"sending body {tags}")
-            # response = requests.post(_url, headers=headers, data=body)
-            # if response.status_code == 201:
-            #    logging.debug(
-            #        f"Converted and pushed {src_path} -> {response.status_code}"
-            #    )
-            # else:
-            #    logging.error(f"got status {response.status_code}")
+            body = json.dumps(tags)
+            logging.info(f"sending body {body}")
+            response = requests.post(_url, headers=headers, data=body)
+            if response.status_code == 201:
+                logging.info(
+                    f"Converted and pushed {src_path} -> {response.status_code}"
+                )
+            else:
+                logging.error(f"got status {response.status_code}")
         except Exception as e:
             logging.error(f"got exceptions {e}")
     else:
@@ -258,10 +265,10 @@ def find_url_datafile_type(url: str, src_path: str) -> tuple:
     datafile_type = ""
     _url = ""
     if ".jpg" in src_path.split(os.path.sep)[-1]:
-        _url = f"{url}/photo"
+        _url = f"{url}/foto"
         datafile_type = "jpg"
     elif ".JPG" in src_path.split(os.path.sep)[-1]:
-        _url = f"{url}/photo"
+        _url = f"{url}/foto"
         datafile_type = "jpg"
     return _url, datafile_type
 
@@ -269,7 +276,7 @@ def find_url_datafile_type(url: str, src_path: str) -> tuple:
 def convert_tags_to_json(tags: dict) -> str:
     """Return json from tags in dict."""
     # Serializing json
-    json_object = json.dumps(tags, indent = 4)
+    json_object = json.dumps(tags, indent=4)
     logging.info(f"Created json: {json_object}")
 
     return json_object
