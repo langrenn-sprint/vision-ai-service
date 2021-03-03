@@ -3,7 +3,6 @@ import tempfile
 
 import nox
 from nox.sessions import Session
-
 import nox_poetry  # noqa: F401
 
 package = "sprint_photopusher"

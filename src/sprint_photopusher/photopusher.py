@@ -1,22 +1,19 @@
 """Module for cli application monitoring directory and handle image."""
+from ftplib import FTP
 import json
 import logging
 import os
 import time
-from ftplib import FTP
 from typing import Any
 
+import click
+from dotenv import load_dotenv
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ExifTags import TAGS
-
-import click
-
-from dotenv import load_dotenv
-
 import requests
-
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
+
 
 from . import __version__
 
@@ -89,7 +86,7 @@ class FileSystemMonitor:
     """Monitor directory and send content of files as json to webserver URL."""
 
     def __init__(self, url: str, directory: Any) -> None:
-        """Init monitor of directory and verify url."""
+        """Initalize the monitor."""
         self.url = url
         self.path = directory
         self.handler = EventHandler(url)
@@ -153,7 +150,7 @@ def ftp_upload(infile: str, outfile: str) -> str:
     return url
 
 
-def create_thumb(infile: str, outfile) -> None:
+def create_thumb(infile: str, outfile: str) -> None:
     """Create thumb from infile."""
     size = (180, 180)
 

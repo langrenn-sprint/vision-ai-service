@@ -1,13 +1,10 @@
 """Unit test cases for the generateSpecification module."""
-import json
 import os
 
 from click.testing import CliRunner
-from deepdiff import DeepDiff
 import pytest
 from pytest_mock import MockFixture
-
-from sprint_photopusher.photopusher import cli, FileSystemMonitor, handle_photo
+from sprint_photopusher.photopusher import cli, FileSystemMonitor
 
 
 @pytest.fixture
