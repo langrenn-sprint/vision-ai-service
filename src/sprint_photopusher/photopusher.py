@@ -234,14 +234,15 @@ def handle_photo(url: str, src_path: Any) -> None:
 
             # update webserver and link to results
             tags = create_tags(src_path)
-            logging.info(f"Tags: {tags}")
+            tags["Filename"] = filename
+            logging.debug(f"Tags: {tags}")
 
             # upload files
             photo_url = ""
             photo_url = ftp_upload(outfile_main, filename)
-            tags["url_photo"] = photo_url
+            tags["Url_photo"] = photo_url
             photo_url = ftp_upload(outfile_thumb, "thumb_" + filename)
-            tags["url_thumb"] = photo_url
+            tags["Url_thumb"] = photo_url
 
             # body = convert_tags_to_json(tags)
             headers = {"content-type": "application/json; charset=utf-8"}
