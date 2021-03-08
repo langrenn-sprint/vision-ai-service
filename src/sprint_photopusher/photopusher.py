@@ -122,7 +122,7 @@ class EventHandler(FileSystemEventHandler):
             f"{event.event_type} {what}: {event.src_path}",
         )
 
-    # def on_created(self, event: FileSystemEvent) -> None:
+    # TODO - change to: def on_created(self, event: FileSystemEvent) -> None:
     def on_modified(self, event: FileSystemEvent) -> None:
         """Handle file creation events."""
         super(EventHandler, self).on_created(event)
@@ -166,52 +166,48 @@ def create_thumb(infile: str, outfile: str) -> None:
 
 def watermark_image(infile: str, outfile: str) -> None:
     """Watermark infile and move outfile to output folder."""
-    try:
-        tatras = Image.open(infile)
-        idraw = ImageDraw.Draw(tatras)
-        text = "Ragdesprinten 2021, Kjelsås IL"
+    tatras = Image.open(infile)
+    idraw = ImageDraw.Draw(tatras)
+    text = "Ragdesprinten 2021, Kjelsås IL"
 
-        font = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", size=120)
-        idraw.text((tatras.width / 2, tatras.height - 200), text, font=font)
-        tatras.save(outfile)
-        logging.info("Watermarked file: " + outfile)
-    except Exception:
-        logging.info("Unable to watermark image ")
-        logging.info(Exception)
+    font = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", size=120)
+    idraw.text((tatras.width / 2, tatras.height - 200), text, font=font)
+    tatras.save(outfile)
+    logging.info("Watermarked file: " + outfile)
 
 
 def create_tags(infile: str) -> dict:
     """Read infile, return dict with relevant tags."""
     _tags = {}
-    try:
-        with Image.open(infile) as im:
-            exifdata = im.getexif()
-            # iterating over all EXIF data fields
-            for tag_id in exifdata:
-                # get the tag name, instead of human unreadable tag id
-                tag = TAGS.get(tag_id, tag_id)
-                data = exifdata.get(tag_id)
-                if tag == "GPSInfo":
-                    logging.debug(f"GPSinfo: {data}")
-                    # _tags[tag] = data
-                elif tag == "DateTime":
-                    _tags[tag] = data
-            # look for information in filename
-            locationtags = ["start", "race", "finish", "prize", "press"]
-            _filename = infile.lower()
-            for location in locationtags:
-                if location in _filename:
-                    _tags["Location"] = location
-                    logging.debug(f"Location found: {location}")
-    except OSError:
-        logging.info("Image error ", OSError)
+
+    with Image.open(infile) as im:
+        exifdata = im.getexif()
+        # iterating over all EXIF data fields
+        for tag_id in exifdata:
+            # get the tag name, instead of human unreadable tag id
+            tag = TAGS.get(tag_id, tag_id)
+            data = exifdata.get(tag_id)
+            if tag == "GPSInfo":
+                logging.debug(f"GPSinfo: {data}")
+                # _tags[tag] = data
+            elif tag == "DateTime":
+                _tags[tag] = data
+        # look for information in filename
+        locationtags = ["start", "race", "finish", "prize", "press"]
+        _filename = infile.lower()
+        for location in locationtags:
+            if location in _filename:
+                _tags["Location"] = location
+                logging.debug(f"Location found: {location}")
+
+    logging.debug(f"Return tags: {_tags}")
     return _tags
 
 
 def handle_photo(url: str, src_path: Any) -> None:
     """Convert file content to json and push to webserver at url."""
     tags = {}
-    _url, datafile_type = find_url_datafile_type(url, src_path)
+    _url, datafile_type = find_url_photofile_type(url, src_path)
     logging.info(f"Server url: {_url} - datafile: {datafile_type}")
 
     if _url:
@@ -241,7 +237,6 @@ def handle_photo(url: str, src_path: Any) -> None:
             photo_url = ftp_upload(outfile_thumb, "thumb_" + filename)
             tags["Url_thumb"] = photo_url
 
-            # body = convert_tags_to_json(tags)
             headers = {"content-type": "application/json; charset=utf-8"}
             body = json.dumps(tags)
             logging.info(f"sending body {body}")
@@ -258,23 +253,12 @@ def handle_photo(url: str, src_path: Any) -> None:
         logging.info(f"Ignoring event on file {src_path}")
 
 
-def find_url_datafile_type(url: str, src_path: str) -> tuple:
-    """Determine and return url and datafile_type based src_path."""
+def find_url_photofile_type(url: str, src_path: str) -> tuple:
+    """Determine and return url and photo type based src_path."""
     datafile_type = ""
-    _url = ""
+    _url = f"{url}/foto"
     if ".jpg" in src_path.split(os.path.sep)[-1]:
-        _url = f"{url}/foto"
         datafile_type = "jpg"
     elif ".JPG" in src_path.split(os.path.sep)[-1]:
-        _url = f"{url}/foto"
         datafile_type = "jpg"
     return _url, datafile_type
-
-
-def convert_tags_to_json(tags: dict) -> str:
-    """Return json from tags in dict."""
-    # Serializing json
-    json_object = json.dumps(tags, indent=4)
-    logging.info(f"Created json: {json_object}")
-
-    return json_object

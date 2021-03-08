@@ -5,7 +5,7 @@ import nox
 from nox.sessions import Session
 import nox_poetry  # noqa: F401
 
-package = "sprint_photopusher"
+package = "sprint_datapusher"
 locations = "src", "tests", "noxfile.py"
 nox.options.stop_on_first_error = True
 nox.options.sessions = ("black", "lint", "mypy", "pytype", "tests")
@@ -13,10 +13,10 @@ nox.options.sessions = ("black", "lint", "mypy", "pytype", "tests")
 
 @nox.session(python=["3.7", "3.9"])
 def tests(session: Session) -> None:
-    """Run session test suite."""
+    """Run the test suite."""
     args = session.posargs or ["--cov"]
     session.install(".")
-    session.install("coverage[toml]", "pytest", "pytest-cov")
+    session.install("coverage[toml]", "pytest", "pytest-cov", "pytest-mock", "deepdiff")
     session.run(
         "pytest",
         "-rA",
@@ -65,12 +65,7 @@ def safety(session: Session) -> None:
             external=True,
         )
         session.install("safety")
-        session.run(
-            "safety",
-            "check",
-            f"--file={requirements.name}",
-            "--full-report",
-        )
+        session.run("safety", "check", f"--file={requirements.name}", "--full-report")
 
 
 @nox.session(python=["3.7", "3.9"])

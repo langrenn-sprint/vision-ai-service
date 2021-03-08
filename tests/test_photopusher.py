@@ -1,10 +1,19 @@
 """Unit test cases for the generateSpecification module."""
+import json
 import os
 
 from click.testing import CliRunner
+from deepdiff import DeepDiff
 import pytest
 from pytest_mock import MockFixture
-from sprint_photopusher.photopusher import cli, FileSystemMonitor
+from sprint_photopusher.photopusher import (
+    cli,
+    create_tags,
+    create_thumb,
+    FileSystemMonitor,
+    find_url_photofile_type,
+    watermark_image,
+)
 
 
 @pytest.fixture
@@ -41,6 +50,55 @@ def test_cli_with_url_arguments_and_directory_succeds(runner: CliRunner) -> None
             monitor.start(loop_action=fake_loop_action)
         except Exception:
             pytest.fail("Unexpected Exception")
+
+
+def test_create_tags() -> None:
+    """Should return correct location."""
+    tags_dict = create_tags("tests/files/input/Finish_8168.JPG")
+
+    with open("tests/files/Finish_8168_tags.json") as json_file:
+        correct_json = json.load(json_file)
+
+    ddiff = DeepDiff(tags_dict, correct_json, ignore_order=True)
+    assert ddiff == {}
+
+
+create_thumb
+
+
+def test_create_thumb() -> None:
+    """Should not raise any Exceptions."""
+    try:
+        create_thumb(
+            "tests/files/input/Finish_8168.JPG",
+            "tests/files/thumbs/thumb_Finish_8168.JPG",
+        )
+    except Exception:
+        pytest.fail("Unexpected Exception")
+
+
+def test_watermark_image() -> None:
+    """Should not raise any Exceptions."""
+    try:
+        watermark_image(
+            "tests/files/input/Finish_8168.JPG", "tests/files/output/Finish_8168.JPG"
+        )
+    except Exception:
+        pytest.fail("Unexpected Exception")
+
+
+def test_find_photo_type() -> None:
+    """Should return correct location."""
+    result = {}
+    result["Url"], result["PhotoType"] = find_url_photofile_type(
+        "http://localhost:8080", "tests/files/input/Finish_8168.JPG"
+    )
+
+    with open("tests/files/Finish_8168_type.json") as json_file:
+        correct_json = json.load(json_file)
+
+    ddiff = DeepDiff(result, correct_json, ignore_order=True)
+    assert ddiff == {}
 
 
 # --- Bad cases ---
