@@ -34,6 +34,7 @@ Options:
 - [nox](https://nox.thea.codes/en/stable/)
 - [nox-poetry](https://github.com/cjolowicz/nox-poetry)
 - [pillow](https://pypi.org/project/Pillow/)
+- [google-cloud-vision]
 
 ```
 % curl https://pyenv.run | bash
@@ -52,6 +53,7 @@ Set environmen variable
 % export PHOTO_FTP_DEST=ftp.harnaes.no
 % export PHOTO_FTP_UID=*** # must be replaced
 % export PHOTO_FTP_PW=*** # must be replaced
+% export GOOGLE_APPLICATION_CREDENTIALS="/home/heming/github/secrets/kjelsaas-langrenn-257719-a69dfe50d3f2.json"
 
 % git clone https://github.com/heming-langrenn/sprint-excel.git
 % cd sprint-excel/photopusher
@@ -71,6 +73,7 @@ Set environmen variable
 % poetry shell
 % sprint_photopusher --help
 ### Test start: sprint_photopusher -d tests/files/input/ http://resultat.skagenoslosprint.no
+### Test start: sprint_photopusher -d tests/files/input/ http://localhost:8080
 
 ```
 Alternatively you can use `poetry run`:
