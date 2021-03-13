@@ -9,8 +9,6 @@ from pytest_mock import MockFixture
 from sprint_photopusher.image_service import ImageService
 from sprint_photopusher.photopusher import (
     cli,
-    create_tags,
-    create_thumb,
     FileSystemMonitor,
     find_url_photofile_type,
 )
@@ -84,9 +82,11 @@ def test_analyze_photo_with_vision_for_langrenn() -> None:
         pytest.fail("Empty resultset from Google vision API")
 
 
-def test_create_tags() -> None:
-    """Should return correct location."""
-    tags_dict = create_tags("tests/files/input/Finish_8168.JPG")
+def test_identify_tags() -> None:
+    """Should return correct tags."""
+    tags_dict = ImageService.identify_tags(
+        ImageService(), "tests/files/input/Finish_8168.JPG"
+    )
 
     with open("tests/files/Finish_8168_tags.json") as json_file:
         correct_json = json.load(json_file)
@@ -98,7 +98,8 @@ def test_create_tags() -> None:
 def test_create_thumb() -> None:
     """Should not raise any Exceptions."""
     try:
-        create_thumb(
+        ImageService.create_thumb(
+            ImageService(),
             "tests/files/input/Finish_8168.JPG",
             "tests/files/thumbs/thumb_Finish_8168.JPG",
         )

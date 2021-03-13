@@ -1,9 +1,13 @@
 """Module for image services."""
+from ftplib import FTP
 import io
+import json
 import logging
+import os
 
 from google.cloud import vision
 from PIL import Image, ImageDraw, ImageFont
+from PIL.ExifTags import TAGS
 
 
 class ImageService:
@@ -80,6 +84,7 @@ class ImageService:
         _tags = {}
         count_persons = 0
         count_skiitems = 0
+        # TODO - should be moved to config file
         confidence_limit = 0.85
 
         # Instantiates a client
@@ -120,7 +125,8 @@ class ImageService:
         _tags["Persons"] = str(count_persons)
 
         # Performs text detection on the image file
-        numbers = ""
+        _numbers = ""
+        _texts = ""
         response = client.document_text_detection(image=image)
         for page in response.full_text_annotation.pages:
             for block in page.blocks:
@@ -136,8 +142,11 @@ class ImageService:
                                 )
                             )
                             if word_text.isnumeric():
-                                numbers = numbers + word_text + ";"
-        _tags["Numbers"] = numbers
+                                _numbers = _numbers + word_text + ";"
+                            else:
+                                _texts = _texts + word_text + ";"
+        _tags["Numbers"] = _numbers
+        _tags["Texts"] = _texts
 
         if response.error.message:
             raise Exception(
@@ -149,11 +158,68 @@ class ImageService:
 
         return _tags
 
+    def create_thumb(self, infile: str, outfile: str) -> None:
+        """Create thumb from infile."""
+        size = (180, 180)
+
+        try:
+            with Image.open(infile) as im:
+                logging.debug(f"Photo size: {im.size}")
+                im.thumbnail(size)
+                im.save(outfile, "JPEG")
+                logging.debug(f"Created thumb: {outfile}")
+        except OSError:
+            logging.info(f"cannot create thumbnail for {infile} {OSError}")
+
+    def ftp_upload(self, infile: str, outfile: str) -> str:
+        """Upload infile to outfile on ftp server, return url to file."""
+        photoftcred = os.environ["FTP_PHOTO_CREDENTIALS"]
+        with open(photoftcred) as json_file:
+            ftp_credentials = json.load(json_file)
+
+        ftp_dest = ftp_credentials["PHOTO_FTP_DEST"]
+        ftp_uid = ftp_credentials["PHOTO_FTP_UID"]
+        ftp_pw = ftp_credentials["PHOTO_FTP_PW"]
+
+        session = FTP(ftp_dest, ftp_uid, ftp_pw)
+        file = open(infile, "rb")  # file to send
+        session.storbinary("STOR " + outfile, file)  # send the file
+        file.close()  # close file and FTP
+        session.quit()
+
+        url = ftp_credentials["PHOTO_FTP_BASE_URL"] + outfile
+        logging.debug(f"FTP Upload file {url}")
+        return url
+
+    def identify_tags(self, infile: str) -> dict:
+        """Read infile, return dict with relevant tags."""
+        _tags = {}
+
+        with Image.open(infile) as im:
+            exifdata = im.getexif()
+            for tag_id in exifdata:
+                # get the tag name, instead of human unreadable tag id
+                tag = TAGS.get(tag_id, tag_id)
+                data = exifdata.get(tag_id)
+                if tag == "DateTime":
+                    _tags[tag] = data
+            # TODO - look for information in filename
+            locationtags = ["start", "race", "finish", "prize", "press"]
+            _filename = infile.lower()
+            for location in locationtags:
+                if location in _filename:
+                    _tags["Location"] = location
+                    logging.debug(f"Location found: {location}")
+
+        logging.debug(f"Return tags: {_tags}")
+        return _tags
+
     def watermark_image(self, infile: str, outfile: str) -> None:
         """Watermark infile and move outfile to output folder."""
         tatras = Image.open(infile)
         idraw = ImageDraw.Draw(tatras)
-        text = "Ragdesprinten 2021, Kjelsås IL"
+        # TODO - move to innstillinger
+        text = "Ragdesprinten"
 
         font = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", size=120)
         idraw.text((tatras.width / 2, tatras.height - 200), text, font=font)

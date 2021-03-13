@@ -1,5 +1,4 @@
 """Module for cli application monitoring directory and handle image."""
-from ftplib import FTP
 import json
 import logging
 import os
@@ -8,8 +7,6 @@ from typing import Any
 
 import click
 from dotenv import load_dotenv
-from PIL import Image
-from PIL.ExifTags import TAGS
 import requests
 from sprint_photopusher.image_service import ImageService
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
@@ -132,48 +129,6 @@ class EventHandler(FileSystemEventHandler):
             handle_photo(self.url, event.src_path)
 
 
-def create_tags(infile: str) -> dict:
-    """Read infile, return dict with relevant tags."""
-    _tags = {}
-
-    with Image.open(infile) as im:
-        exifdata = im.getexif()
-        # iterating over all EXIF data fields
-        for tag_id in exifdata:
-            # get the tag name, instead of human unreadable tag id
-            tag = TAGS.get(tag_id, tag_id)
-            data = exifdata.get(tag_id)
-            if tag == "GPSInfo":
-                logging.debug(f"GPSinfo: {data}")
-                # _tags[tag] = data
-            elif tag == "DateTime":
-                _tags[tag] = data
-        # look for information in filename
-        locationtags = ["start", "race", "finish", "prize", "press"]
-        _filename = infile.lower()
-        for location in locationtags:
-            if location in _filename:
-                _tags["Location"] = location
-                logging.debug(f"Location found: {location}")
-
-    logging.debug(f"Return tags: {_tags}")
-    return _tags
-
-
-def create_thumb(infile: str, outfile: str) -> None:
-    """Create thumb from infile."""
-    size = (180, 180)
-
-    try:
-        with Image.open(infile) as im:
-            logging.debug(f"Photo size: {im.size}")
-            im.thumbnail(size)
-            im.save(outfile, "JPEG")
-            logging.debug(f"Created thumb: {outfile}")
-    except OSError:
-        logging.info(f"cannot create thumbnail for {infile} {OSError}")
-
-
 def find_url_photofile_type(url: str, src_path: str) -> tuple:
     """Determine and return url and photo type based src_path."""
     datafile_type = ""
@@ -183,27 +138,6 @@ def find_url_photofile_type(url: str, src_path: str) -> tuple:
     elif ".JPG" in src_path.split(os.path.sep)[-1]:
         datafile_type = "jpg"
     return _url, datafile_type
-
-
-def ftp_upload(infile: str, outfile: str) -> str:
-    """Upload infile to outfile on ftp server, return url to file."""
-    photoftcred = os.environ["FTP_PHOTO_CREDENTIALS"]
-    with open(photoftcred) as json_file:
-        ftp_credentials = json.load(json_file)
-
-    ftp_dest = ftp_credentials["PHOTO_FTP_DEST"]
-    ftp_uid = ftp_credentials["PHOTO_FTP_UID"]
-    ftp_pw = ftp_credentials["PHOTO_FTP_PW"]
-
-    session = FTP(ftp_dest, ftp_uid, ftp_pw)
-    file = open(infile, "rb")  # file to send
-    session.storbinary("STOR " + outfile, file)  # send the file
-    file.close()  # close file and FTP
-    session.quit()
-
-    url = ftp_credentials["PHOTO_FTP_BASE_URL"] + outfile
-    logging.debug(f"FTP Upload file {url}")
-    return url
 
 
 def handle_photo(url: str, src_path: Any) -> None:
@@ -221,27 +155,30 @@ def handle_photo(url: str, src_path: Any) -> None:
             # create thumb
             directory = src_path.replace("input/" + filename, "")
             outfile_thumb = directory + "thumbs/thumb_" + filename
-            create_thumb(src_path, outfile_thumb)
+            ImageService.create_thumb(ImageService(), src_path, outfile_thumb)
 
             # add watermark
             outfile_main = src_path.replace("input/", "output/")
             ImageService.watermark_image(ImageService(), src_path, outfile_main)
 
             # update webserver and link to results
-            tags = create_tags(src_path)
+            tags = ImageService.identify_tags(ImageService(), src_path)
             tags["Filename"] = filename
             logging.debug(f"Tags: {tags}")
 
-            tags = ImageService.analyze_photo_with_vision_for_langrenn(
+            google_tags = ImageService.analyze_photo_with_vision_for_langrenn(
                 ImageService(),
-                "tests/files/input/Finish_8168.JPG",
+                outfile_main,
             )
+            tags.update(google_tags)
 
             # upload files
             photo_url = ""
-            photo_url = ftp_upload(outfile_main, filename)
+            photo_url = ImageService.ftp_upload(ImageService(), outfile_main, filename)
             tags["Url_photo"] = photo_url
-            photo_url = ftp_upload(outfile_thumb, "thumb_" + filename)
+            photo_url = ImageService.ftp_upload(
+                ImageService(), outfile_thumb, "thumb_" + filename
+            )
             tags["Url_thumb"] = photo_url
 
             headers = {"content-type": "application/json; charset=utf-8"}
