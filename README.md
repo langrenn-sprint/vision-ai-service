@@ -49,10 +49,8 @@ Options:
 
 ### Install
 ```
-Set environmen variable
-% export PHOTO_FTP_DEST=ftp.harnaes.no
-% export PHOTO_FTP_UID=*** # must be replaced
-% export PHOTO_FTP_PW=*** # must be replaced
+Set environmen variable to link up secrets
+% export FTP_PHOTO_CREDENTIALS="/home/heming/github/secrets/ftp_photo_credentials.json"
 % export GOOGLE_APPLICATION_CREDENTIALS="/home/heming/github/secrets/kjelsaas-langrenn-257719-a69dfe50d3f2.json"
 
 % git clone https://github.com/heming-langrenn/sprint-excel.git

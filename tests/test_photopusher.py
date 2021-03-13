@@ -6,13 +6,13 @@ from click.testing import CliRunner
 from deepdiff import DeepDiff
 import pytest
 from pytest_mock import MockFixture
+from sprint_photopusher.image_service import ImageService
 from sprint_photopusher.photopusher import (
     cli,
     create_tags,
     create_thumb,
     FileSystemMonitor,
     find_url_photofile_type,
-    watermark_image,
 )
 
 
@@ -52,6 +52,38 @@ def test_cli_with_url_arguments_and_directory_succeds(runner: CliRunner) -> None
             pytest.fail("Unexpected Exception")
 
 
+def test_analyze_photo_with_vision_detailed() -> None:
+    """Should return at least 5 elements from vision."""
+    result = {}
+    try:
+        result = ImageService.analyze_photo_with_vision_detailed(
+            ImageService(),
+            "tests/files/input/Finish_8168.JPG",
+        )
+    except Exception:
+        pytest.fail("Unexpected Exception")
+
+    resultlist = result.items()
+    if len(resultlist) == 0:
+        pytest.fail("Empty resultset from Google vision API")
+
+
+def test_analyze_photo_with_vision_for_langrenn() -> None:
+    """Should return at least 5 elements from vision."""
+    result = {}
+    try:
+        result = ImageService.analyze_photo_with_vision_for_langrenn(
+            ImageService(),
+            "tests/files/input/Finish_8168.JPG",
+        )
+    except Exception:
+        pytest.fail("Unexpected Exception")
+
+    resultlist = result.items()
+    if len(resultlist) == 0:
+        pytest.fail("Empty resultset from Google vision API")
+
+
 def test_create_tags() -> None:
     """Should return correct location."""
     tags_dict = create_tags("tests/files/input/Finish_8168.JPG")
@@ -61,9 +93,6 @@ def test_create_tags() -> None:
 
     ddiff = DeepDiff(tags_dict, correct_json, ignore_order=True)
     assert ddiff == {}
-
-
-create_thumb
 
 
 def test_create_thumb() -> None:
@@ -80,8 +109,10 @@ def test_create_thumb() -> None:
 def test_watermark_image() -> None:
     """Should not raise any Exceptions."""
     try:
-        watermark_image(
-            "tests/files/input/Finish_8168.JPG", "tests/files/output/Finish_8168.JPG"
+        ImageService.watermark_image(
+            ImageService(),
+            "tests/files/input/Finish_8168.JPG",
+            "tests/files/output/Finish_8168.JPG",
         )
     except Exception:
         pytest.fail("Unexpected Exception")

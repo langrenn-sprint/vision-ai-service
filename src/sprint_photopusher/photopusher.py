@@ -1,6 +1,5 @@
 """Module for cli application monitoring directory and handle image."""
 from ftplib import FTP
-import io
 import json
 import logging
 import os
@@ -9,10 +8,10 @@ from typing import Any
 
 import click
 from dotenv import load_dotenv
-from google.cloud import vision
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from PIL.ExifTags import TAGS
 import requests
+from sprint_photopusher.image_service import ImageService
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
@@ -130,70 +129,7 @@ class EventHandler(FileSystemEventHandler):
         super(EventHandler, self).on_created(event)
 
         if not event.is_directory:
-            # handle_photo(self.url, event.src_path)
-            analyze_photo_with_vision_detailed(event.src_path)
-
-
-def analyze_photo_with_vision_detailed(infile: str) -> dict:
-    """Send infile to Vision API, return dict with relevant tags."""
-    logging.info("Enter vision")
-    _tags = {}
-
-    # Instantiates a client
-    client = vision.ImageAnnotatorClient()
-
-    # Loads the image into memory
-    with io.open(infile, "rb") as image_file:
-        content = image_file.read()
-
-    image = vision.Image(content=content)
-
-    # Performs label detection on the image file
-    response = client.label_detection(image=image)
-    labels = response.label_annotations
-    for label in labels:
-        logging.info(f"Found label: {label.description}")
-        _tags["Label"] = label.description
-
-    # Performs object detection on the image file
-    objects = client.object_localization(image=image).localized_object_annotations
-    for object_ in objects:
-        logging.info(
-            "Found object: {} (confidence: {})".format(object_.name, object_.score)
-        )
-        _tags["Object"] = object_.name
-
-    # Performs text detection on the image file
-    response = client.document_text_detection(image=image)
-    for page in response.full_text_annotation.pages:
-        for block in page.blocks:
-            logging.info("\nBlock confidence: {}\n".format(block.confidence))
-
-            for paragraph in block.paragraphs:
-                logging.info("Paragraph confidence: {}".format(paragraph.confidence))
-
-                for word in paragraph.words:
-                    word_text = "".join([symbol.text for symbol in word.symbols])
-                    logging.info(
-                        "Word text: {} (confidence: {})".format(
-                            word_text, word.confidence
-                        )
-                    )
-
-                    for symbol in word.symbols:
-                        logging.info(
-                            "\tSymbol: {} (confidence: {})".format(
-                                symbol.text, symbol.confidence
-                            )
-                        )
-
-    if response.error.message:
-        raise Exception(
-            "{}\nFor more info on error messages, check: "
-            "https://cloud.google.com/apis/design/errors".format(response.error.message)
-        )
-
-    return _tags
+            handle_photo(self.url, event.src_path)
 
 
 def create_tags(infile: str) -> dict:
@@ -233,7 +169,7 @@ def create_thumb(infile: str, outfile: str) -> None:
             logging.debug(f"Photo size: {im.size}")
             im.thumbnail(size)
             im.save(outfile, "JPEG")
-            logging.info(f"Created thumb: {outfile}")
+            logging.debug(f"Created thumb: {outfile}")
     except OSError:
         logging.info(f"cannot create thumbnail for {infile} {OSError}")
 
@@ -251,20 +187,22 @@ def find_url_photofile_type(url: str, src_path: str) -> tuple:
 
 def ftp_upload(infile: str, outfile: str) -> str:
     """Upload infile to outfile on ftp server, return url to file."""
-    photoftpdest = os.environ["PHOTO_FTP_DEST"]
-    logging.debug(f"FTP dest: {photoftpdest}")
-    photoftpuid = os.environ["PHOTO_FTP_UID"]
-    logging.debug(f"FTP user: {photoftpuid}")
-    photoftppw = os.environ["PHOTO_FTP_PW"]
+    photoftcred = os.environ["FTP_PHOTO_CREDENTIALS"]
+    with open(photoftcred) as json_file:
+        ftp_credentials = json.load(json_file)
 
-    session = FTP(photoftpdest, photoftpuid, photoftppw)
+    ftp_dest = ftp_credentials["PHOTO_FTP_DEST"]
+    ftp_uid = ftp_credentials["PHOTO_FTP_UID"]
+    ftp_pw = ftp_credentials["PHOTO_FTP_PW"]
+
+    session = FTP(ftp_dest, ftp_uid, ftp_pw)
     file = open(infile, "rb")  # file to send
     session.storbinary("STOR " + outfile, file)  # send the file
     file.close()  # close file and FTP
     session.quit()
 
-    url = "http://www.harnaes.no/sprint/" + outfile
-    logging.info(f"FTP Upload file {url}")
+    url = ftp_credentials["PHOTO_FTP_BASE_URL"] + outfile
+    logging.debug(f"FTP Upload file {url}")
     return url
 
 
@@ -272,7 +210,7 @@ def handle_photo(url: str, src_path: Any) -> None:
     """Convert file content to json and push to webserver at url."""
     tags = {}
     _url, datafile_type = find_url_photofile_type(url, src_path)
-    logging.info(f"Server url: {_url} - datafile: {datafile_type}")
+    logging.debug(f"Server url: {_url} - datafile: {datafile_type}")
 
     if _url:
 
@@ -287,12 +225,17 @@ def handle_photo(url: str, src_path: Any) -> None:
 
             # add watermark
             outfile_main = src_path.replace("input/", "output/")
-            watermark_image(src_path, outfile_main)
+            ImageService.watermark_image(ImageService(), src_path, outfile_main)
 
             # update webserver and link to results
             tags = create_tags(src_path)
             tags["Filename"] = filename
             logging.debug(f"Tags: {tags}")
+
+            tags = ImageService.analyze_photo_with_vision_for_langrenn(
+                ImageService(),
+                "tests/files/input/Finish_8168.JPG",
+            )
 
             # upload files
             photo_url = ""
@@ -303,7 +246,7 @@ def handle_photo(url: str, src_path: Any) -> None:
 
             headers = {"content-type": "application/json; charset=utf-8"}
             body = json.dumps(tags)
-            logging.info(f"sending body {body}")
+            logging.debug(f"sending body {body}")
             response = requests.post(_url, headers=headers, data=body)
             if response.status_code == 201:
                 logging.info(
@@ -315,15 +258,3 @@ def handle_photo(url: str, src_path: Any) -> None:
             logging.error(f"got exceptions {e}")
     else:
         logging.info(f"Ignoring event on file {src_path}")
-
-
-def watermark_image(infile: str, outfile: str) -> None:
-    """Watermark infile and move outfile to output folder."""
-    tatras = Image.open(infile)
-    idraw = ImageDraw.Draw(tatras)
-    text = "Ragdesprinten 2021, Kjelsås IL"
-
-    font = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", size=120)
-    idraw.text((tatras.width / 2, tatras.height - 200), text, font=font)
-    tatras.save(outfile)
-    logging.info("Watermarked file: " + outfile)
