@@ -189,6 +189,9 @@ class ImageService:
 
         url = ftp_credentials["PHOTO_FTP_BASE_URL"] + outfile
         logging.debug(f"FTP Upload file {url}")
+        # ensure web safe urls
+        url = url.replace(" ", "%20")
+
         return url
 
     def identify_tags(self, infile: str) -> dict:

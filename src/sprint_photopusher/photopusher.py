@@ -55,7 +55,7 @@ def cli(url: str, directory: Any) -> None:
     if _webserver_allive(url):
         click.echo(f"\nWorking directory {os.getcwd()}")
         click.echo(f"Watching {os.path.join(os.getcwd(), directory)}")
-        click.echo(f"Sending data to webserver at {url}")
+        click.echo(f"Sending photos to webserver at {url}")
     else:
         exit(2)
 
@@ -125,8 +125,12 @@ class EventHandler(FileSystemEventHandler):
         """Handle file creation events."""
         super(EventHandler, self).on_created(event)
 
+        src_path = event.src_path
+        filename = src_path.split(os.path.sep)[-1]
+
         if not event.is_directory:
-            handle_photo(self.url, event.src_path)
+            if not filename.startswith("_"):
+                handle_photo(self.url, event.src_path)
 
 
 def find_url_photofile_type(url: str, src_path: str) -> tuple:
@@ -153,12 +157,12 @@ def handle_photo(url: str, src_path: Any) -> None:
             filename = src_path.split(os.path.sep)[-1]
 
             # create thumb
-            directory = src_path.replace("input/" + filename, "")
-            outfile_thumb = directory + "thumbs/thumb_" + filename
+            directory = src_path.replace(filename, "")
+            outfile_thumb = directory + "_thumb_" + filename
+            outfile_main = directory + "_web_" + filename
             ImageService.create_thumb(ImageService(), src_path, outfile_thumb)
 
             # add watermark
-            outfile_main = src_path.replace("input/", "output/")
             ImageService.watermark_image(ImageService(), src_path, outfile_main)
 
             # update webserver and link to results
