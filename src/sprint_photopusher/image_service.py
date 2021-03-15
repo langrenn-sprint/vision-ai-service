@@ -31,13 +31,13 @@ class ImageService:
         response = client.label_detection(image=image)
         labels = response.label_annotations
         for label in labels:
-            logging.info(f"Found label: {label.description}")
+            logging.debug(f"Found label: {label.description}")
             _tags["Label"] = label.description
 
         # Performs object detection on the image file
         objects = client.object_localization(image=image).localized_object_annotations
         for object_ in objects:
-            logging.info(
+            logging.debug(
                 "Found object: {} (confidence: {})".format(object_.name, object_.score)
             )
             _tags["Object"] = object_.name
@@ -83,7 +83,6 @@ class ImageService:
         logging.debug("Enter vision")
         _tags = {}
         count_persons = 0
-        count_skiitems = 0
         # TODO - should be moved to config file
         confidence_limit = 0.85
 
@@ -96,30 +95,13 @@ class ImageService:
 
         image = vision.Image(content=content)
 
-        # Performs label detection on the image file
-        response = client.label_detection(image=image)
-        labels = response.label_annotations
-        for label in labels:
-            if confidence_limit < label.score:
-                logging.debug(
-                    "Found label: {} (confidence: {})".format(
-                        label.description, label.score
-                    )
-                )
-                _desc = label.description
-                if _desc.count("Ski") > 0:
-                    count_skiitems = count_skiitems + 1
-        _tags["Ski_items"] = str(count_skiitems)
-
         # Performs object detection on the image file
         objects = client.object_localization(image=image).localized_object_annotations
         for object_ in objects:
+            logging.debug(
+                "Found object: {} (confidence: {})".format(object_.name, object_.score)
+            )
             if confidence_limit < object_.score:
-                logging.debug(
-                    "Found object: {} (confidence: {})".format(
-                        object_.name, object_.score
-                    )
-                )
                 if object_.name == "Person":
                     count_persons = count_persons + 1
         _tags["Persons"] = str(count_persons)
