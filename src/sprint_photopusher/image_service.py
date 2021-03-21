@@ -188,25 +188,19 @@ class ImageService:
                 data = exifdata.get(tag_id)
                 if tag == "DateTime":
                     _tags[tag] = data
-            # TODO - look for information in filename
-            locationtags = ["start", "race", "finish", "prize", "press"]
-            _filename = infile.lower()
-            for location in locationtags:
-                if location in _filename:
-                    _tags["Location"] = location
-                    logging.debug(f"Location found: {location}")
 
         logging.debug(f"Return tags: {_tags}")
         return _tags
 
     def watermark_image(self, infile: str, outfile: str) -> None:
-        """Watermark infile and move outfile to output folder."""
-        tatras = Image.open(infile)
-        idraw = ImageDraw.Draw(tatras)
+        """Watermark, resize and save to outfile."""
+        im = Image.open(infile)
+        idraw = ImageDraw.Draw(im)
+
         # TODO - move to innstillinger
         text = "Ragdesprinten"
 
         font = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", size=120)
-        idraw.text((tatras.width / 2, tatras.height - 200), text, font=font)
-        tatras.save(outfile)
-        logging.debug("Watermarked file: " + outfile)
+        idraw.text((im.width / 2, im.height - 200), text, font=font)
+        im.save(outfile)
+        logging.debug("Rezised and watermarked file: " + outfile)
