@@ -130,72 +130,97 @@ class EventHandler(FileSystemEventHandler):
 
         if not event.is_directory:
             if not filename.startswith("_"):
-                handle_photo(self.url, event.src_path)
+                handle_file(self.url, event.src_path)
 
 
 def find_url_photofile_type(url: str, src_path: str) -> tuple:
     """Determine and return url and photo type based src_path."""
     datafile_type = ""
     _url = f"{url}/foto"
-    if ".jpg" in src_path.split(os.path.sep)[-1]:
+    _filename = src_path.split(os.path.sep)[-1]
+    if ".jpg" in _filename:
         datafile_type = "jpg"
-    elif ".JPG" in src_path.split(os.path.sep)[-1]:
+    elif ".JPG" in _filename:
         datafile_type = "jpg"
+    elif ".mp4" in _filename:
+        datafile_type = "mov"
+    elif ".mov" in _filename:
+        datafile_type = "mov"
     return _url, datafile_type
 
 
-def handle_photo(url: str, src_path: Any) -> None:
+def handle_file(url: str, src_path: Any) -> None:
     """Convert file content to json and push to webserver at url."""
-    tags = {}
     _url, datafile_type = find_url_photofile_type(url, src_path)
     logging.debug(f"Server url: {_url} - datafile: {datafile_type}")
 
-    if _url:
-
-        try:
-            # TODO - need to enhance name & move to folder thumbs
-            filename = src_path.split(os.path.sep)[-1]
-
-            # create thumb
-            directory = src_path.replace(filename, "")
-            outfile_thumb = directory + "_thumb_" + filename
-            outfile_main = directory + "_web_" + filename
-            ImageService.create_thumb(ImageService(), src_path, outfile_thumb)
-
-            # add watermark
-            ImageService.watermark_image(ImageService(), src_path, outfile_main)
-
-            # update webserver and link to results
-            tags = ImageService.identify_tags(ImageService(), src_path)
-            tags["Filename"] = filename
-            logging.debug(f"Tags: {tags}")
-
-            google_tags = ImageService.analyze_photo_with_vision_for_langrenn(
-                ImageService(),
-                outfile_main,
-            )
-            tags.update(google_tags)
-
-            # upload files
-            photo_url = ""
-            photo_url = ImageService.ftp_upload(ImageService(), outfile_main, filename)
-            tags["Url_photo"] = photo_url
-            photo_url = ImageService.ftp_upload(
-                ImageService(), outfile_thumb, "thumb_" + filename
-            )
-            tags["Url_thumb"] = photo_url
-
-            headers = {"content-type": "application/json; charset=utf-8"}
-            body = json.dumps(tags)
-            logging.debug(f"sending body {body}")
-            response = requests.post(_url, headers=headers, data=body)
-            if response.status_code == 201:
-                logging.info(
-                    f"Converted and pushed {src_path} -> {response.status_code}"
-                )
-            else:
-                logging.error(f"got status {response.status_code}")
-        except Exception as e:
-            logging.error(f"got exceptions {e}")
+    if datafile_type == "mov":
+        handle_video(_url, src_path)
+    elif datafile_type == "jpg":
+        handle_photo(_url, src_path)
     else:
         logging.info(f"Ignoring event on file {src_path}")
+
+
+def handle_photo(url: str, src_path: Any) -> None:
+    """Analyse photo and push to webserver at url."""
+    tags = {}
+    try:
+        # TODO - need to enhance name & move to folder thumbs
+        filename = src_path.split(os.path.sep)[-1]
+        # create thumb
+        directory = src_path.replace(filename, "")
+        outfile_thumb = directory + "_thumb_" + filename
+        outfile_main = directory + "_web_" + filename
+        ImageService.create_thumb(ImageService(), src_path, outfile_thumb)
+
+        # add watermark
+        ImageService.watermark_image(ImageService(), src_path, outfile_main)
+
+        # update webserver and link to results
+        tags = ImageService.identify_tags(ImageService(), src_path)
+        tags["Filename"] = filename
+        logging.debug(f"Tags: {tags}")
+
+        google_tags = ImageService.analyze_photo_with_vision_for_langrenn(
+            ImageService(),
+            outfile_main,
+        )
+        tags.update(google_tags)
+
+        # upload files
+        photo_url = ""
+        photo_url = ImageService.ftp_upload(ImageService(), outfile_main, filename)
+        tags["Url_photo"] = photo_url
+        photo_url = ImageService.ftp_upload(
+            ImageService(), outfile_thumb, "thumb_" + filename
+        )
+        tags["Url_thumb"] = photo_url
+
+        headers = {"content-type": "application/json; charset=utf-8"}
+        body = json.dumps(tags)
+        logging.debug(f"sending body {body}")
+        response = requests.post(url, headers=headers, data=body)
+        if response.status_code == 201:
+            logging.info(f"Converted and pushed {src_path} -> {response.status_code}")
+        else:
+            logging.error(f"got status {response.status_code}")
+    except Exception as e:
+        logging.error(f"got exceptions {e}")
+
+
+def handle_video(url: str, src_path: Any) -> None:
+    """Analyse video and push to webserver at url."""
+    logging.info(f"Found video {src_path}")
+    tags = {}
+    # TODO - need to enhance name & move to folder thumbs
+    filename = src_path.split(os.path.sep)[-1]
+
+    tags["Filename"] = filename
+
+    google_tags = ImageService.analyze_video_with_intelligence_detailed(
+        ImageService(),
+        src_path,
+    )
+    tags.update(google_tags)
+    logging.info(f"Tags: {tags}")

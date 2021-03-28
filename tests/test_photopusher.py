@@ -50,6 +50,22 @@ def test_cli_with_url_arguments_and_directory_succeds(runner: CliRunner) -> None
             pytest.fail("Unexpected Exception")
 
 
+def test_analyze_video_with_intelligence_detailed() -> None:
+    """Should return at least 1 element from vision."""
+    result = {}
+    try:
+        result = ImageService.analyze_video_with_intelligence_detailed(
+            ImageService(),
+            "tests/files/input/J15test1.mp4",
+        )
+    except Exception:
+        pytest.fail("Unexpected Exception")
+
+    resultlist = result.items()
+    if len(resultlist) < 1:
+        pytest.fail("Empty resultset from Google vision API")
+
+
 def test_analyze_photo_with_vision_detailed() -> None:
     """Should return at least 5 elements from vision."""
     result = {}
