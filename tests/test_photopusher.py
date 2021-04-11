@@ -98,6 +98,22 @@ def test_analyze_photo_with_vision_for_langrenn() -> None:
         pytest.fail("Empty resultset from Google vision API")
 
 
+def test_analyze_photo_with_azure_vision() -> None:
+    """Should return element(s) from vision."""
+    result = {}
+    try:
+        result = ImageService.analyze_photo_with_azure_vision(
+            ImageService(),
+            "tests/files/output/Finish_8168.JPG",
+        )
+    except Exception:
+        pytest.fail("Unexpected Exception")
+
+    resultlist = result.items()
+    if len(resultlist) == 0:
+        pytest.fail("Empty resultset from Azure computer vision API")
+
+
 def test_identify_tags() -> None:
     """Should return correct tags."""
     tags_dict = ImageService.identify_tags(
@@ -118,6 +134,18 @@ def test_create_thumb() -> None:
             ImageService(),
             "tests/files/input/Finish_8168.JPG",
             "tests/files/thumbs/thumb_Finish_8168.JPG",
+        )
+    except Exception:
+        pytest.fail("Unexpected Exception")
+
+
+def test_create_thumb_azure_vision() -> None:
+    """Should not raise any Exceptions."""
+    try:
+        ImageService.create_thumb_with_azure_vision(
+            ImageService(),
+            "tests/files/output/Finish_8168.JPG",
+            "tests/files/thumbs/thumb__Azure_Finish_8168.JPG",
         )
     except Exception:
         pytest.fail("Unexpected Exception")

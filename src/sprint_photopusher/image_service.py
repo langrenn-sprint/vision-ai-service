@@ -5,8 +5,12 @@ import json
 import logging
 import os
 
+from azure.cognitiveservices.vision.computervision import ComputerVisionClient
+from azure.cognitiveservices.vision.computervision.models import OperationStatusCodes
+from azure.cognitiveservices.vision.computervision.models import VisualFeatureTypes
 from google.cloud import videointelligence
 from google.cloud import vision
+from msrest.authentication import CognitiveServicesCredentials
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ExifTags import TAGS
 
@@ -15,8 +19,8 @@ class ImageService:
     """Class representing image services."""
 
     def analyze_photo_with_vision_detailed(self, infile: str) -> dict:
-        """Send infile to Vision API, return dict with all labels, objects and texts."""
-        logging.debug("Enter vision API")
+        """Send infile to Google Vision API, return dict with all labels, objects and texts."""
+        logging.debug("Enter Google vision API")
         _tags = {}
 
         # Instantiates a client
@@ -47,23 +51,23 @@ class ImageService:
         response = client.document_text_detection(image=image)
         for page in response.full_text_annotation.pages:
             for block in page.blocks:
-                logging.info("\nBlock confidence: {}\n".format(block.confidence))
+                logging.debug("\nBlock confidence: {}\n".format(block.confidence))
 
                 for paragraph in block.paragraphs:
-                    logging.info(
+                    logging.debug(
                         "Paragraph confidence: {}".format(paragraph.confidence)
                     )
 
                     for word in paragraph.words:
                         word_text = "".join([symbol.text for symbol in word.symbols])
-                        logging.info(
+                        logging.debug(
                             "Word text: {} (confidence: {})".format(
                                 word_text, word.confidence
                             )
                         )
 
                         for symbol in word.symbols:
-                            logging.info(
+                            logging.debug(
                                 "\tSymbol: {} (confidence: {})".format(
                                     symbol.text, symbol.confidence
                                 )
@@ -79,13 +83,60 @@ class ImageService:
 
         return _tags
 
+    def analyze_photo_with_azure_vision(self, infile: str) -> dict:
+        """Send infile to Azure Computer Vision API, return texts."""
+        logging.debug("Enter Google vision API")
+        _tags = {}
+
+        # Get credentials for Azure vision API
+        photoftcred = os.environ["PHOTOPUSHER_CREDENTIALS"]
+        with open(photoftcred) as json_file:
+            photopusher_credentials = json.load(json_file)
+        subscription_key = photopusher_credentials["AZURE_VISION_SUBSCRIPTION_KEY"]
+        endpoint = photopusher_credentials["AZURE_VISION_ENDPOINT"]
+
+        # Connect to service API
+        computervision_client = ComputerVisionClient(
+            endpoint, CognitiveServicesCredentials(subscription_key)
+        )
+
+        # Open local image file
+        local_image = io.open(infile, "rb")
+
+        # Call API
+        description_result = computervision_client.describe_image_in_stream(local_image)
+
+        # Get the captions (descriptions) from the response, with confidence level
+        logging.debug("Description of local image: ")
+        if len(description_result.captions) == 0:
+            logging.debug("No description detected.")
+        else:
+            _numbers = ""
+            _texts = ""
+
+            for caption in description_result.captions:
+                logging.debug(
+                    "'{}' with confidence {:.2f}%".format(
+                        caption.text, caption.confidence * 100
+                    )
+                )
+                if caption.confidence > float(get_global_setting("CONFIDENCE_LIMIT")):
+                    word_text = caption.text
+                    if word_text.isnumeric():
+                        _numbers = _numbers + word_text + ";"
+                    else:
+                        _texts = _texts + word_text + ";"
+
+            _tags["Numbers"] = _numbers
+            _tags["Texts"] = _texts
+
+        return _tags
+
     def analyze_photo_with_vision_for_langrenn(self, infile: str) -> dict:
         """Send infile to Vision API, return dict with langrenn info."""
         logging.debug("Enter vision")
         _tags = {}
         count_persons = 0
-        # TODO - should be moved to config file
-        confidence_limit = 0.85
 
         # Instantiates a client
         client = vision.ImageAnnotatorClient()
@@ -102,7 +153,7 @@ class ImageService:
             logging.debug(
                 "Found object: {} (confidence: {})".format(object_.name, object_.score)
             )
-            if confidence_limit < object_.score:
+            if float(get_global_setting("CONFIDENCE_LIMIT")) < object_.score:
                 if object_.name == "Person":
                     count_persons = count_persons + 1
         _tags["Persons"] = str(count_persons)
@@ -115,7 +166,10 @@ class ImageService:
             for block in page.blocks:
                 for paragraph in block.paragraphs:
                     for word in paragraph.words:
-                        if confidence_limit < word.confidence:
+                        if (
+                            float(get_global_setting("CONFIDENCE_LIMIT"))
+                            < word.confidence
+                        ):
                             word_text = "".join(
                                 [symbol.text for symbol in word.symbols]
                             )
@@ -143,7 +197,7 @@ class ImageService:
 
     def analyze_video_with_intelligence_detailed(self, infile: str) -> dict:
         """Send infile to Vision API, return dict with all labels, objects and texts."""
-        logging.info("Enter vision API")
+        logging.debug("Enter vision API")
         _tags = {}
 
         """Detect text in a local video."""
@@ -162,7 +216,7 @@ class ImageService:
             }
         )
 
-        print("\nProcessing video for text detection.")
+        logging.debug("\nProcessing video for text detection.")
         result = operation.result(timeout=300)
 
         # The first result is retrieved because a single video was processed.
@@ -170,26 +224,26 @@ class ImageService:
         _texts = ""
 
         for text_annotation in annotation_result.text_annotations:
-            print("\nText: {}".format(text_annotation.text))
+            logging.debug("\nText: {}".format(text_annotation.text))
 
             # Get the first text segment
             text_segment = text_annotation.segments[0]
 
             start_time = text_segment.segment.start_time_offset
             end_time = text_segment.segment.end_time_offset
-            print(
+            logging.debug(
                 "start_time: {}, end_time: {}".format(
                     start_time.seconds + start_time.microseconds * 1e-6,
                     end_time.seconds + end_time.microseconds * 1e-6,
                 )
             )
 
-            print("Confidence: {}".format(text_segment.confidence))
+            logging.debug("Confidence: {}".format(text_segment.confidence))
 
             # Show the result for the first frame in this segment.
             frame = text_segment.frames[0]
             time_offset = frame.time_offset
-            print(
+            logging.debug(
                 "Time offset for the first frame: {}".format(
                     time_offset.seconds + time_offset.microseconds * 1e-6
                 )
@@ -210,17 +264,46 @@ class ImageService:
                 im.save(outfile, "JPEG")
                 logging.debug(f"Created thumb: {outfile}")
         except OSError:
-            logging.info(f"cannot create thumbnail for {infile} {OSError}")
+            logging.error(f"cannot create thumbnail for {infile} {OSError}")
+
+    def create_thumb_with_azure_vision(self, infile: str, outfile: str) -> None:
+        """Send infile to Azure Computer Vision API, return new thumb."""
+        logging.debug("Enter Google vision API")
+
+        # Get credentials for Azure vision API
+        photoftcred = os.environ["PHOTOPUSHER_CREDENTIALS"]
+        with open(photoftcred) as json_file:
+            photopusher_credentials = json.load(json_file)
+        subscription_key = photopusher_credentials["AZURE_VISION_SUBSCRIPTION_KEY"]
+        endpoint = photopusher_credentials["AZURE_VISION_ENDPOINT"]
+
+        # Connect to service API
+        computervision_client = ComputerVisionClient(
+            endpoint, CognitiveServicesCredentials(subscription_key)
+        )
+
+        # Open local image file
+        local_image = io.open(infile, "rb")
+
+        # Returns a Generator object, a thumbnail image binary (list).
+        thumb_local = computervision_client.generate_thumbnail_in_stream(
+            250, 250, local_image, True
+        )
+
+        # Write the image binary to file
+        with open(outfile, "wb") as f:
+            for chunk in thumb_local:
+                f.write(chunk)
 
     def ftp_upload(self, infile: str, outfile: str) -> str:
         """Upload infile to outfile on ftp server, return url to file."""
-        photoftcred = os.environ["FTP_PHOTO_CREDENTIALS"]
+        photoftcred = os.environ["PHOTOPUSHER_CREDENTIALS"]
         with open(photoftcred) as json_file:
-            ftp_credentials = json.load(json_file)
+            photopusher_credentials = json.load(json_file)
 
-        ftp_dest = ftp_credentials["PHOTO_FTP_DEST"]
-        ftp_uid = ftp_credentials["PHOTO_FTP_UID"]
-        ftp_pw = ftp_credentials["PHOTO_FTP_PW"]
+        ftp_dest = photopusher_credentials["PHOTO_FTP_DEST"]
+        ftp_uid = photopusher_credentials["PHOTO_FTP_UID"]
+        ftp_pw = photopusher_credentials["PHOTO_FTP_PW"]
 
         session = FTP(ftp_dest, ftp_uid, ftp_pw)
         file = open(infile, "rb")  # file to send
@@ -228,7 +311,7 @@ class ImageService:
         file.close()  # close file and FTP
         session.quit()
 
-        url = ftp_credentials["PHOTO_FTP_BASE_URL"] + outfile
+        url = photopusher_credentials["PHOTO_FTP_BASE_URL"] + outfile
         logging.debug(f"FTP Upload file {url}")
         # ensure web safe urls
         url = url.replace(" ", "%20")
@@ -238,6 +321,7 @@ class ImageService:
     def identify_tags(self, infile: str) -> dict:
         """Read infile, return dict with relevant tags."""
         _tags = {}
+        logging.debug(f"identify_tags: {infile}")
 
         with Image.open(infile) as im:
             exifdata = im.getexif()
@@ -247,6 +331,7 @@ class ImageService:
                 data = exifdata.get(tag_id)
                 if tag == "DateTime":
                     _tags[tag] = data
+                logging.debug(f"Tag: {tag} - data: {data}")
 
         logging.debug(f"Return tags: {_tags}")
         return _tags
@@ -256,10 +341,15 @@ class ImageService:
         im = Image.open(infile)
         idraw = ImageDraw.Draw(im)
 
-        # TODO - move to innstillinger
-        text = "Ragdesprinten"
-
         font = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", size=120)
-        idraw.text((im.width / 2, im.height - 200), text, font=font)
+        idraw.text((im.width / 2, im.height - 200), get_global_setting("PHOTO_WATERMARK_TEXT"), font=font)
         im.save(outfile)
         logging.debug("Rezised and watermarked file: " + outfile)
+
+
+def get_global_setting(param_name: str) -> str:
+    """Get global settings."""
+    photo_settings = os.environ["PHOTOPUSHER_SETTINGS"]
+    with open(photo_settings) as json_file:
+        photopusher_settings = json.load(json_file)
+    return photopusher_settings[param_name]
