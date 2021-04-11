@@ -18,7 +18,25 @@ from PIL.ExifTags import TAGS
 class ImageService:
     """Class representing image services."""
 
-    def analyze_photo_with_vision_detailed(self, infile: str) -> dict:
+    def analyze_photo(self, photo_file: str) -> dict:
+        """Analyse photo with selected service."""
+        _tags = {}
+        use_azure = get_global_setting("AZURE_VISION_TEXT_SERVICE")
+
+        if use_azure == "True":
+            _tags = self.analyze_photo_with_azure_vision(
+                photo_file,
+            )
+            logging.info(f"Analysed photo with Azure {_tags}")
+        else:
+            _tags = self.analyze_photo_with_google_for_langrenn(
+                photo_file,
+            )
+            logging.info(f"Analysed photo with Google {_tags}")
+
+        return _tags
+
+    def analyze_photo_with_google_detailed(self, infile: str) -> dict:
         """Send infile to Google Vision API, return dict with all labels, objects and texts."""
         logging.debug("Enter Google vision API")
         _tags = {}
@@ -132,7 +150,7 @@ class ImageService:
 
         return _tags
 
-    def analyze_photo_with_vision_for_langrenn(self, infile: str) -> dict:
+    def analyze_photo_with_google_for_langrenn(self, infile: str) -> dict:
         """Send infile to Vision API, return dict with langrenn info."""
         logging.debug("Enter vision")
         _tags = {}
@@ -254,17 +272,19 @@ class ImageService:
         return _tags
 
     def create_thumb(self, infile: str, outfile: str) -> None:
-        """Create thumb from infile."""
-        size = (250, 250)
+        """Create thumb with selected service."""
+        use_azure = get_global_setting("AZURE_THUMB_SERVICE")
 
-        try:
-            with Image.open(infile) as im:
-                logging.debug(f"Photo size: {im.size}")
-                im.thumbnail(size)
-                im.save(outfile, "JPEG")
-                logging.debug(f"Created thumb: {outfile}")
-        except OSError:
-            logging.error(f"cannot create thumbnail for {infile} {OSError}")
+        if use_azure == "True":
+            self.create_thumb_with_azure_vision(
+                infile,
+                outfile,
+            )
+        else:
+            self.create_thumb_with_pillow(
+                infile,
+                outfile,
+            )
 
     def create_thumb_with_azure_vision(self, infile: str, outfile: str) -> None:
         """Send infile to Azure Computer Vision API, return new thumb."""
@@ -284,16 +304,31 @@ class ImageService:
 
         # Open local image file
         local_image = io.open(infile, "rb")
+        thumb_size = int(get_global_setting("PHOTO_THUMB_SIZE"))
 
         # Returns a Generator object, a thumbnail image binary (list).
         thumb_local = computervision_client.generate_thumbnail_in_stream(
-            250, 250, local_image, True
+            thumb_size, thumb_size, local_image, True
         )
 
         # Write the image binary to file
         with open(outfile, "wb") as f:
             for chunk in thumb_local:
                 f.write(chunk)
+
+    def create_thumb_with_pillow(self, infile: str, outfile: str) -> None:
+        """Create thumb from infile."""
+        thumb_size = int(get_global_setting("PHOTO_THUMB_SIZE"))
+        size = (thumb_size, thumb_size)
+
+        try:
+            with Image.open(infile) as im:
+                logging.debug(f"Photo size: {im.size}")
+                im.thumbnail(size)
+                im.save(outfile, "JPEG")
+                logging.debug(f"Created thumb: {outfile}")
+        except OSError:
+            logging.error(f"cannot create thumbnail for {infile} {OSError}")
 
     def ftp_upload(self, infile: str, outfile: str) -> str:
         """Upload infile to outfile on ftp server, return url to file."""
@@ -342,7 +377,11 @@ class ImageService:
         idraw = ImageDraw.Draw(im)
 
         font = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", size=120)
-        idraw.text((im.width / 2, im.height - 200), get_global_setting("PHOTO_WATERMARK_TEXT"), font=font)
+        idraw.text(
+            (im.width / 2, im.height - 200),
+            get_global_setting("PHOTO_WATERMARK_TEXT"),
+            font=font,
+        )
         im.save(outfile)
         logging.debug("Rezised and watermarked file: " + outfile)
 

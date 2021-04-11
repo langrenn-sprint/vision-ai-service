@@ -67,7 +67,7 @@ Set environmen variable to link up secrets and settings
 ```
 % nox -rs tests
 ```
-## Run cli script
+### Run cli script
 ```
 % poetry shell
 % sprint_photopusher --help
@@ -79,3 +79,11 @@ Alternatively you can use `poetry run`:
 ```
 % poetry run sprint_photopusher --help
 ```
+
+### Photopusher photo_settings (from photopusher_settings.json)
+### All parameters must be in "brackets"
+CONFIDENCE_LIMIT - for cognitive services, a float between 0 and 1
+PHOTO_THUMB_SIZE - max height/width for thumbnail, an int
+PHOTO_WATERMARK_TEXT - text to watermark image, typically name of event
+AZURE_THUMB_SERVICE - "True" for Azure, anything else for Pillow
+AZURE_VISION_TEXT_SERVICE - "True" for Azure, anything else for Google

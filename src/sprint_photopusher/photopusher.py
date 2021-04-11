@@ -182,11 +182,11 @@ def handle_photo(url: str, src_path: Any) -> None:
         tags["Filename"] = filename
         logging.debug(f"Tags: {tags}")
 
-        google_tags = ImageService.analyze_photo_with_vision_for_langrenn(
+        vision_tags = ImageService.analyze_photo(
             ImageService(),
             outfile_main,
         )
-        tags.update(google_tags)
+        tags.update(vision_tags)
 
         # upload files
         photo_url = ""

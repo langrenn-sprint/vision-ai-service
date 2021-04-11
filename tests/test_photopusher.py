@@ -66,11 +66,11 @@ def test_analyze_video_with_intelligence_detailed() -> None:
         pytest.fail("Empty resultset from Google vision API")
 
 
-def test_analyze_photo_with_vision_detailed() -> None:
+def test_analyze_photo_with_google_detailed() -> None:
     """Should return at least 5 elements from vision."""
     result = {}
     try:
-        result = ImageService.analyze_photo_with_vision_detailed(
+        result = ImageService.analyze_photo_with_google_detailed(
             ImageService(),
             "tests/files/input/Finish_8168.JPG",
         )
@@ -82,11 +82,11 @@ def test_analyze_photo_with_vision_detailed() -> None:
         pytest.fail("Empty resultset from Google vision API")
 
 
-def test_analyze_photo_with_vision_for_langrenn() -> None:
+def test_analyze_photo_with_google_for_langrenn() -> None:
     """Should return at least 5 elements from vision."""
     result = {}
     try:
-        result = ImageService.analyze_photo_with_vision_for_langrenn(
+        result = ImageService.analyze_photo_with_google_for_langrenn(
             ImageService(),
             "tests/files/input/Finish_8168.JPG",
         )
@@ -114,6 +114,22 @@ def test_analyze_photo_with_azure_vision() -> None:
         pytest.fail("Empty resultset from Azure computer vision API")
 
 
+def test_analyze_photo() -> None:
+    """Should return element(s) from vision."""
+    result = {}
+    try:
+        result = ImageService.analyze_photo(
+            ImageService(),
+            "tests/files/output/Finish_8168.JPG",
+        )
+    except Exception:
+        pytest.fail("Unexpected Exception")
+
+    resultlist = result.items()
+    if len(resultlist) == 0:
+        pytest.fail("Empty resultset from selected vision API")
+
+
 def test_identify_tags() -> None:
     """Should return correct tags."""
     tags_dict = ImageService.identify_tags(
@@ -132,7 +148,7 @@ def test_create_thumb() -> None:
     try:
         ImageService.create_thumb(
             ImageService(),
-            "tests/files/input/Finish_8168.JPG",
+            "tests/files/output/Finish_8168.JPG",
             "tests/files/thumbs/thumb_Finish_8168.JPG",
         )
     except Exception:
@@ -146,6 +162,18 @@ def test_create_thumb_azure_vision() -> None:
             ImageService(),
             "tests/files/output/Finish_8168.JPG",
             "tests/files/thumbs/thumb__Azure_Finish_8168.JPG",
+        )
+    except Exception:
+        pytest.fail("Unexpected Exception")
+
+
+def test_create_thumb_with_pillow() -> None:
+    """Should not raise any Exceptions."""
+    try:
+        ImageService.create_thumb_with_pillow(
+            ImageService(),
+            "tests/files/input/Finish_8168.JPG",
+            "tests/files/thumbs/thumb_Finish_8168.JPG",
         )
     except Exception:
         pytest.fail("Unexpected Exception")

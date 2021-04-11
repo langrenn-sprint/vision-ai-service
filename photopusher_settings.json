@@ -1,4 +1,7 @@
 {
   "CONFIDENCE_LIMIT": "0.85",
-  "PHOTO_WATERMARK_TEXT": "Ragdesprinten"
+  "PHOTO_THUMB_SIZE": "250",
+  "PHOTO_WATERMARK_TEXT": "Ragdesprinten",
+  "AZURE_THUMB_SERVICE": "True",
+  "AZURE_VISION_TEXT_SERVICE": "True"
 }
