@@ -103,8 +103,11 @@ class ImageService:
 
     def analyze_photo_with_azure_vision(self, infile: str) -> dict:
         """Send infile to Azure Computer Vision API, return texts."""
-        logging.debug("Enter Google vision API")
+        logging.debug("Enter Azure vision API")
         _tags = {}
+        count_persons = 0
+        _numbers = ""
+        _texts = ""
 
         # Get credentials for Azure vision API
         photoftcred = os.environ["PHOTOPUSHER_CREDENTIALS"]
@@ -121,32 +124,40 @@ class ImageService:
         # Open local image file
         local_image = io.open(infile, "rb")
 
-        # Call API
-        description_result = computervision_client.describe_image_in_stream(local_image)
+        # Call API to detect texts
+        description_result = computervision_client.recognize_printed_text_in_stream(local_image)
 
         # Get the captions (descriptions) from the response, with confidence level
-        logging.debug("Description of local image: ")
-        if len(description_result.captions) == 0:
-            logging.debug("No description detected.")
-        else:
-            _numbers = ""
-            _texts = ""
-
-            for caption in description_result.captions:
-                logging.debug(
-                    "'{}' with confidence {:.2f}%".format(
-                        caption.text, caption.confidence * 100
-                    )
-                )
-                if caption.confidence > float(get_global_setting("CONFIDENCE_LIMIT")):
-                    word_text = caption.text
+        for region in description_result.regions:
+            for line in region.lines:
+                for word in line.words:
+                    word_text = word.text
                     if word_text.isnumeric():
                         _numbers = _numbers + word_text + ";"
                     else:
                         _texts = _texts + word_text + ";"
+        _tags["Numbers"] = _numbers
+        _tags["Texts"] = _texts
 
-            _tags["Numbers"] = _numbers
-            _tags["Texts"] = _texts
+        # Call API to get tags
+        local_image = io.open(infile, "rb")
+        try:
+            tags_result_local = computervision_client.tag_image_in_stream(local_image)
+
+            # Print results with confidence score
+            print("Tags in the local image: ")
+            if (len(tags_result_local.tags) == 0):
+                logging.debug("No tags detected.")
+            else:
+                for tag in tags_result_local.tags:
+                    logging.info("'{}' with confidence {:.2f}%".format(tag.name, tag.confidence * 100))
+                    if tag.name == "person":
+                        if float(get_global_setting("CONFIDENCE_LIMIT")) < tag.confidence:
+                            count_persons = count_persons + 1
+        except Exception as e:
+            logging.error(f"Got exceptions detecting tags with Azure: {e}")
+
+        _tags["Persons"] = str(count_persons)
 
         return _tags
 
@@ -304,11 +315,12 @@ class ImageService:
 
         # Open local image file
         local_image = io.open(infile, "rb")
-        thumb_size = int(get_global_setting("PHOTO_THUMB_SIZE"))
+        thumb_width = int(get_global_setting("PHOTO_THUMB_WIDTH"))
+        thumb_heigth = int(get_global_setting("PHOTO_THUMB_HEIGTH"))
 
         # Returns a Generator object, a thumbnail image binary (list).
         thumb_local = computervision_client.generate_thumbnail_in_stream(
-            thumb_size, thumb_size, local_image, True
+            thumb_width, thumb_heigth, local_image, True
         )
 
         # Write the image binary to file
