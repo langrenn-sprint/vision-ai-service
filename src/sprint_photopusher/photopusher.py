@@ -120,7 +120,7 @@ class EventHandler(FileSystemEventHandler):
             f"{event.event_type} {what}: {event.src_path}",
         )
 
-    # TODO - change to: def on_created(self, event: FileSystemEvent) -> None:
+    # TODO: change to: def on_created(self, event: FileSystemEvent) -> None:
     def on_modified(self, event: FileSystemEvent) -> None:
         """Handle file creation events."""
         super(EventHandler, self).on_created(event)
