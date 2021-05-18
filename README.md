@@ -55,7 +55,7 @@ Set environmen variable to link up secrets and settings
 % export GOOGLE_APPLICATION_CREDENTIALS="/home/heming/github/secrets/kjelsaas-langrenn-257719-a69dfe50d3f2.json"
 
 % git clone https://github.com/heming-langrenn/sprint-excel.git
-% cd sprint-excel/photopusher
+% cd sprint-photopusher
 % pyenv local 3.9.1 3.7.9
 % poetry install
 ```

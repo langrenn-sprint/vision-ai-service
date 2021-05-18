@@ -1,6 +1,7 @@
 """Unit test cases for the generateSpecification module."""
 import json
 import os
+import time
 
 from click.testing import CliRunner
 from deepdiff import DeepDiff
@@ -141,6 +142,35 @@ def test_identify_tags() -> None:
 
     ddiff = DeepDiff(tags_dict, correct_json, ignore_order=True)
     assert ddiff == {}
+
+
+def test_capture_camera_image() -> None:
+    """Should not raise any Exceptions."""
+    try:
+        gmt = time.gmtime()
+        outfile = "tests/files/capture/capture_cam_0_"
+        ImageService.capture_camera_image(
+            ImageService(),
+            0,
+            outfile + "1" + str(gmt.tm_sec) + ".JPG",
+        )
+        ImageService.capture_camera_image(
+            ImageService(),
+            0,
+            outfile + "2" + str(gmt.tm_sec) + ".JPG",
+        )
+        ImageService.capture_camera_image(
+            ImageService(),
+            0,
+            outfile + "3" + str(gmt.tm_sec) + ".JPG",
+        )
+        ImageService.capture_camera_image(
+            ImageService(),
+            0,
+            outfile + "4" + str(gmt.tm_sec) + ".JPG",
+        )
+    except Exception:
+        pytest.fail("Unexpected Exception")
 
 
 def test_create_thumb() -> None:

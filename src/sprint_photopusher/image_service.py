@@ -8,6 +8,7 @@ import os
 from azure.cognitiveservices.vision.computervision import ComputerVisionClient
 from azure.cognitiveservices.vision.computervision.models import OperationStatusCodes
 from azure.cognitiveservices.vision.computervision.models import VisualFeatureTypes
+import cv2
 from google.cloud import videointelligence
 from google.cloud import vision
 from msrest.authentication import CognitiveServicesCredentials
@@ -125,7 +126,9 @@ class ImageService:
         local_image = io.open(infile, "rb")
 
         # Call API to detect texts
-        description_result = computervision_client.recognize_printed_text_in_stream(local_image)
+        description_result = computervision_client.recognize_printed_text_in_stream(
+            local_image
+        )
 
         # Get the captions (descriptions) from the response, with confidence level
         for region in description_result.regions:
@@ -146,13 +149,20 @@ class ImageService:
 
             # Print results with confidence score
             print("Tags in the local image: ")
-            if (len(tags_result_local.tags) == 0):
+            if len(tags_result_local.tags) == 0:
                 logging.debug("No tags detected.")
             else:
                 for tag in tags_result_local.tags:
-                    logging.info("'{}' with confidence {:.2f}%".format(tag.name, tag.confidence * 100))
+                    logging.info(
+                        "'{}' with confidence {:.2f}%".format(
+                            tag.name, tag.confidence * 100
+                        )
+                    )
                     if tag.name == "person":
-                        if float(get_global_setting("CONFIDENCE_LIMIT")) < tag.confidence:
+                        if (
+                            float(get_global_setting("CONFIDENCE_LIMIT"))
+                            < tag.confidence
+                        ):
                             count_persons = count_persons + 1
         except Exception as e:
             logging.error(f"Got exceptions detecting tags with Azure: {e}")
@@ -282,6 +292,18 @@ class ImageService:
         _tags["Texts"] = _texts
         return _tags
 
+    def capture_camera_image(self, cam_id: int, outfile: str) -> None:
+        """Capture image from connected camera."""
+        camera = cv2.VideoCapture(0)
+        if not camera.isOpened():
+            logging.error("Cannot open camera")
+        else:
+            ret, frame = camera.read()
+            if ret:
+                cv2.imwrite(outfile, frame)
+        camera.release()
+        cv2.destroyAllWindows()
+
     def create_thumb(self, infile: str, outfile: str) -> None:
         """Create thumb with selected service."""
         use_azure = get_global_setting("AZURE_THUMB_SERVICE")
@@ -384,10 +406,21 @@ class ImageService:
         return _tags
 
     def watermark_image(self, infile: str, outfile: str) -> None:
-        """Watermark, resize and save to outfile."""
+        """Resize, watermark and save to outfile."""
         im = Image.open(infile)
-        idraw = ImageDraw.Draw(im)
 
+        maxsize = int(get_global_setting("PHOTO_OUTPUT_MAXSIZE"))
+        if (im.height > maxsize) or (im.width > maxsize):
+            factor = float(1)
+            if im.height > im.width:
+                factor = maxsize / im.height
+            else:
+                factor = maxsize / im.width
+            newheight = int(im.height * factor)
+            newwidth = int(im.width * factor)
+            im = im.resize((newwidth, newheight), Image.ANTIALIAS)
+
+        idraw = ImageDraw.Draw(im)
         font = ImageFont.truetype("Pillow/Tests/fonts/FreeMono.ttf", size=120)
         idraw.text(
             (im.width / 2, im.height - 200),
