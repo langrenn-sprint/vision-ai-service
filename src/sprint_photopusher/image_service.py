@@ -111,11 +111,8 @@ class ImageService:
         _texts = ""
 
         # Get credentials for Azure vision API
-        photoftcred = os.environ["PHOTOPUSHER_CREDENTIALS"]
-        with open(photoftcred) as json_file:
-            photopusher_credentials = json.load(json_file)
-        subscription_key = photopusher_credentials["AZURE_VISION_SUBSCRIPTION_KEY"]
-        endpoint = photopusher_credentials["AZURE_VISION_ENDPOINT"]
+        subscription_key = os.getenv("AZURE_VISION_SUBSCRIPTION_KEY")
+        endpoint = os.getenv("AZURE_VISION_ENDPOINT")
 
         # Connect to service API
         computervision_client = ComputerVisionClient(
@@ -324,11 +321,8 @@ class ImageService:
         logging.debug("Enter Google vision API")
 
         # Get credentials for Azure vision API
-        photoftcred = os.environ["PHOTOPUSHER_CREDENTIALS"]
-        with open(photoftcred) as json_file:
-            photopusher_credentials = json.load(json_file)
-        subscription_key = photopusher_credentials["AZURE_VISION_SUBSCRIPTION_KEY"]
-        endpoint = photopusher_credentials["AZURE_VISION_ENDPOINT"]
+        subscription_key = os.getenv("AZURE_VISION_SUBSCRIPTION_KEY")
+        endpoint = os.getenv("AZURE_VISION_ENDPOINT")
 
         # Connect to service API
         computervision_client = ComputerVisionClient(
@@ -366,21 +360,17 @@ class ImageService:
 
     def ftp_upload(self, infile: str, outfile: str) -> str:
         """Upload infile to outfile on ftp server, return url to file."""
-        photoftcred = os.environ["PHOTOPUSHER_CREDENTIALS"]
-        with open(photoftcred) as json_file:
-            photopusher_credentials = json.load(json_file)
+        ftp_dest = os.getenv("PHOTO_FTP_DEST")
+        ftp_uid = os.getenv("PHOTO_FTP_UID")
+        ftp_pw = os.getenv("PHOTO_FTP_PW")
 
-        ftp_dest = photopusher_credentials["PHOTO_FTP_DEST"]
-        ftp_uid = photopusher_credentials["PHOTO_FTP_UID"]
-        ftp_pw = photopusher_credentials["PHOTO_FTP_PW"]
-
-        session = FTP(ftp_dest, ftp_uid, ftp_pw)
+        session = FTP(str(ftp_dest), str(ftp_uid), str(ftp_pw))
         file = open(infile, "rb")  # file to send
         session.storbinary("STOR " + outfile, file)  # send the file
         file.close()  # close file and FTP
         session.quit()
 
-        url = photopusher_credentials["PHOTO_FTP_BASE_URL"] + outfile
+        url = str(os.getenv("PHOTO_FTP_BASE_URL")) + outfile
         logging.debug(f"FTP Upload file {url}")
         # ensure web safe urls
         url = url.replace(" ", "%20")
@@ -432,8 +422,8 @@ class ImageService:
 
 
 def get_global_setting(param_name: str) -> str:
-    """Get global settings."""
-    photo_settings = os.environ["PHOTOPUSHER_SETTINGS"]
+    """Get global settings from .env file."""
+    photo_settings = str(os.getenv("PHOTOPUSHER_SETTINGS_FILE"))
     with open(photo_settings) as json_file:
         photopusher_settings = json.load(json_file)
     return photopusher_settings[param_name]
