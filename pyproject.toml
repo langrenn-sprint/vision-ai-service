@@ -27,6 +27,8 @@ google-cloud-videointelligence = "^2.0.0"
 google-cloud-vision = "^2.2.0"
 azure-cognitiveservices-vision-computervision = "^0.7.0"
 opencv-python = "^4.5.2"
+multidict = "^5.1.0"
+aiohttp = "^3.7.4"
 
 
 [tool.poetry.dev-dependencies]
