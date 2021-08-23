@@ -55,6 +55,22 @@ Options:
 % pyenv local 3.9.1 3.7.9
 % poetry install
 ```
+
+### Prepare .env filer (dummy parameter values supplied)
+LOGGING_LEVEL=DEBU
+PHOTO_FTP_DEST=ftp.server.no
+PHOTO_FTP_UID=uid@server.no
+PHOTO_FTP_PW=password
+PHOTO_FTP_BASE_URL=http://www.server.no/sprint/
+AZURE_VISION_SUBSCRIPTION_KEY=the_key_from_MS
+AZURE_VISION_ENDPOINT=azure_endpoint
+GOOGLE_APPLICATION_CREDENTIALS=credentials_file
+PHOTOPUSHER_SETTINGS_FILE=/home/github/sprint-photopusher/photopusher_settings.json
+USER_SERVICE_URL=http://localhost:8086
+WEBSERVER_UID=username
+WEBSERVER_PW=password
+WEBSERVER_TOKEN=token_from_user_service
+
 ### Run all sessions
 ```
 % nox

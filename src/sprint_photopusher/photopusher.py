@@ -5,8 +5,10 @@ import os
 import time
 from typing import Any
 
+from aiohttp import hdrs
 import click
 from dotenv import load_dotenv
+from multidict import MultiDict
 import requests
 from sprint_photopusher.image_service import ImageService
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
@@ -18,6 +20,8 @@ from . import __version__
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 load_dotenv()
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
+USER_SERVICE_URL = os.getenv("USER_SERVICE_URL")
+WEBSERVER_TOKEN = os.getenv("WEBSERVER_TOKEN", "DUMMY")
 
 logging.basicConfig(
     level=LOGGING_LEVEL,
@@ -51,8 +55,8 @@ def cli(url: str, directory: Any) -> None:
         url: the URL to a webserver exposing an endpoint accepting json.
         directory: relative path to the directory to watch
     """  # noqa: D301
-    # Check if webserver is alive:
-    if _webserver_allive(url):
+    # Check if webserver is alive and perform login:
+    if _webserver_allive(url) and _webserver_login():
         click.echo(f"\nWorking directory {os.getcwd()}")
         click.echo(f"Watching {os.path.join(os.getcwd(), directory)}")
         click.echo(f"Sending photos to webserver at {url}")
@@ -71,12 +75,40 @@ def _webserver_allive(url: str) -> bool:
         logging.debug(f"Trying to ping webserver at {url}")
         response = requests.get(_url)
         if response.status_code == 200:
-            logging.info(f"Connected to {url}")
+            logging.info(f"Connected to webserver {url}")
             return True
         else:
             logging.error(f"Webserver error : {response.status_code}")
     except Exception:
         logging.error("Webserver not available. Exiting....")
+    return False
+
+
+def _webserver_login() -> bool:
+    """Perform login function."""
+    try:
+        request_body = {
+            "username": os.getenv("WEBSERVER_UID"),
+            "password": os.getenv("WEBSERVER_PW"),
+        }
+        headers = MultiDict(
+            {
+                hdrs.CONTENT_TYPE: "application/json",
+            },
+        )
+        response = requests.post(
+            f"{USER_SERVICE_URL}/login", headers=headers, json=request_body
+        )
+        if response.status_code == 200:
+            response_json = response.json()
+            global WEBSERVER_TOKEN
+            WEBSERVER_TOKEN = response_json["token"]
+            logging.info("Login successful, token retrieved")
+            return True
+        else:
+            logging.error(f"Webserver error : {response.status_code}")
+    except Exception:
+        logging.error("Webserver login failed. Exiting....")
     return False
 
 

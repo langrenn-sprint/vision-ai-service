@@ -17,8 +17,6 @@ from multidict import MultiDict
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ExifTags import TAGS
 
-USER_SERVICE_URL = os.getenv("USER_SERVICE_URL")
-
 
 class ImageService:
     """Class representing image services."""
@@ -380,32 +378,6 @@ class ImageService:
         url = url.replace(" ", "%20")
 
         return url
-
-    async def get_webserver_token(self) -> str:
-        """Perform login function."""
-        request_body = {
-            "username": os.getenv("WEBSERVER_UID"),
-            "password": os.getenv("WEBSERVER_PW"),
-        }
-        headers = MultiDict(
-            {
-                hdrs.CONTENT_TYPE: "application/json",
-            },
-        )
-        async with ClientSession() as session:
-            async with session.post(
-                f"{USER_SERVICE_URL}/login", headers=headers, json=request_body
-            ) as response:
-                result = response.status
-                logging.info(f"do login - got response {result}")
-                if result == 200:
-                    body = await response.json()
-                    token = body["token"]
-                else:
-                    logging.error(f"delete_user failed - {response.status}, {response}")
-                    raise web.HTTPBadRequest(reason="Login to webserver failed.")
-
-        return token
 
     def identify_tags(self, infile: str) -> dict:
         """Read infile, return dict with relevant tags."""
