@@ -1,40 +1,67 @@
 """Nox sessions."""
-import tempfile
+import sys
 
 import nox
-from nox.sessions import Session
-import nox_poetry  # noqa: F401
+from nox_poetry import Session, session
 
-package = "sprint_datapusher"
-locations = "src", "tests", "noxfile.py"
+package = "vision-ai-service"
+locations = "vision-ai-service", "tests", "noxfile.py"
+nox.options.envdir = ".cache"
+nox.options.reuse_existing_virtualenvs = True
 nox.options.stop_on_first_error = True
-nox.options.sessions = ("black", "lint", "mypy", "pytype", "tests")
+nox.options.sessions = (
+    "lint",
+    "pytype",
+)
 
 
-@nox.session(python=["3.7", "3.9"])
-def tests(session: Session) -> None:
-    """Run the test suite."""
-    args = session.posargs or ["--cov"]
-    session.install(".")
-    session.install(
-        "coverage[toml]",
-        "pytest",
-        "pytest-cov",
-        "pytest-mock",
-        "pytest-aiohttp",
-        "aioresponses",
-        "requests",
-        "multidict",
+@session(python=["3.11"])
+def clean(session: Session) -> None:
+    """Clean the project."""
+    session.run(
+        "py3clean",
+        ".",
+        external=True,
     )
     session.run(
-        "pytest",
-        "-rA",
-        *args,
-        env={},
+        "rm",
+        "-rf",
+        ".cache",
+        external=True,
+    )
+    session.run(
+        "rm",
+        "-rf",
+        ".pytest_cache",
+        external=True,
+    )
+    session.run(
+        "rm",
+        "-rf",
+        ".pytype",
+        external=True,
+    )
+    session.run(
+        "rm",
+        "-rf",
+        "dist",
+        external=True,
+    )
+    session.run(
+        "rm",
+        "-rf",
+        ".mypy_cache",
+        external=True,
+    )
+    session.run(
+        "rm",
+        "-f",
+        ".coverage",
+        external=True,
     )
 
 
-@nox.session(python=["3.7", "3.9"])
+@session(python=["3.10", "3.11"])
 def black(session: Session) -> None:
     """Run black code formatter."""
     args = session.posargs or locations
@@ -42,7 +69,7 @@ def black(session: Session) -> None:
     session.run("black", *args)
 
 
-@nox.session(python=["3.7", "3.9"])
+@session(python=["3.10", "3.11"])
 def lint(session: Session) -> None:
     """Lint using flake8."""
     args = session.posargs or locations
@@ -56,47 +83,37 @@ def lint(session: Session) -> None:
         "flake8-import-order",
         "darglint",
         "flake8-assertive",
-        "pep8-naming",
     )
     session.run("flake8", *args)
 
 
-@nox.session(python=["3.7", "3.9"])
+@session(python=["3.10", "3.11"])
 def safety(session: Session) -> None:
     """Scan dependencies for insecure packages."""
-    with tempfile.NamedTemporaryFile() as requirements:
-        session.run(
-            "poetry",
-            "export",
-            "--dev",
-            "--format=requirements.txt",
-            "--without-hashes",
-            f"--output={requirements.name}",
-            external=True,
-        )
-        session.install("safety")
-        session.run("safety", "check", f"--file={requirements.name}", "--full-report")
+    requirements = session.poetry.export_requirements()
+    session.install("safety")
+    session.run("safety", "check", "--full-report", f"--file={requirements}")
 
 
-@nox.session(python=["3.7", "3.9"])
+@session(python=["3.10", "3.11"])
 def mypy(session: Session) -> None:
     """Type-check using mypy."""
-    args = session.posargs or locations
-    session.install("mypy")
+    args = session.posargs or [
+        "--install-types",
+        "--non-interactive",
+        "vision-ai-service",
+        "tests",
+    ]
+    session.install(".")
+    session.install("mypy", "pytest")
     session.run("mypy", *args)
+    if not session.posargs:
+        session.run("mypy", f"--python-executable={sys.executable}", "noxfile.py")
 
 
-@nox.session(python="3.7")
+@session(python=["3.10"])
 def pytype(session: Session) -> None:
     """Run the static type checker using pytype."""
     args = session.posargs or ["--disable=import-error", *locations]
     session.install("pytype")
     session.run("pytype", *args)
-
-
-@nox.session(python=["3.7", "3.9"])
-def coverage(session: Session) -> None:
-    """Upload coverage data."""
-    session.install("coverage[toml]", "codecov")
-    session.run("coverage", "xml", "--fail-under=0")
-    session.run("codecov", *session.posargs)

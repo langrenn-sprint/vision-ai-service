@@ -1,1 +1,1 @@
-"""Test suite for the photopusher package."""
+"""Test suite for the vision-ai-service package."""

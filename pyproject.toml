@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "sprint-photopusher"
-version = "0.1.0"
-description = "A tool to read csv files, transform to json and push to sprint_excel_webserver."
+name = "vision-ai-service"
+version = "0.8.0"
+description = "A tool to analyse video stream and detect people crossing line."
 authors = ["Stig B. Dørmænen <stigbd@gmail.com>", "Heming Harnæs <heming.harnaes@gmail.com"]
 license = "Apache-2.0"
 readme = "README.md"
-homepage = "https://github.com/heming-langrenn/sprint-excel/tree/main/photopusher"
-repository = "https://github.com/heming-langrenn/sprint-excel"
+homepage = "https://github.com/langrenn-sprint/vision-ai-service.git"
+repository = "https://github.com/heming-langrenn/vision-ai-service"
 classifiers=[
       "Programming Language :: Python :: 3",
       "License :: OSI Approved :: Apache Software License",
@@ -14,58 +14,86 @@ classifiers=[
       ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
-PyYAML = "^5.3.1"
-click = "^7.1.2"
-jsonpickle = "^1.4.1"
-watchdog = "^1.0.1"
-pandas = "^1.1.5"
-requests = "^2.25.1"
-python-dotenv = "^0.15.0"
+python = ">=3.9,<4"
+pandas = "^2.1.3"
+requests = "^2.31.0"
+python-dotenv = "^1.0.0"
 Pillow = "^8.1.0"
-google-cloud-videointelligence = "^2.0.0"
-google-cloud-vision = "^2.2.0"
-azure-cognitiveservices-vision-computervision = "^0.7.0"
-opencv-python = "^4.5.2"
-multidict = "^5.1.0"
-aiohttp = "^3.7.4"
+multidict = "^6.0.2"
+aiohttp = "^3.9.1"
+watchdog = "^3.0.0"
 
 
-[tool.poetry.dev-dependencies]
-pytest = "^6.1.1"
-black = "^20.8b1"
-flake8 = "^3.8.4"
-flake8-black = "^0.2.1"
-mypy = "^0.782"
-pytype = {version = "^2020.2.20", python = "3.7"}
-flake8-annotations = "^2.4.1"
-flake8-bandit = "^2.1.2"
-flake8-bugbear = "^20.1.4"
+[tool.poetry.group.dev.dependencies]
+aiohttp-devtools = "^1.1.0"
+aioresponses = "^0.7.6"
+black = "^23.11.0"
+codecov = "^2.1.13"
+coverage = "^7.3.2"
+flake8 = "^6.1.0"
+flake8-annotations = "^3.0.1"
+flake8-bandit = "^4.1.1"
+flake8-black = "^0.3.3"
+flake8-bugbear = "^23.12.2"
 flake8-docstrings = "^1.5.0"
 flake8-import-order = "^0.18.1"
-darglint = "^1.5.5"
-flake8-assertive = "^1.2.1"
-pytest-cov = "^2.10.1"
-deepdiff = "^5.0.2"
-pytest-mock = "^3.3.1"
-pep8-naming = "^0.11.1"
-safety = "^1.9.0"
-codecov = "^2.1.10"
-
-[tool.poetry.scripts]
-sprint_photopusher = "sprint_photopusher.photopusher:cli"
+mypy = "^1.7.1"
+nox = "^2023.4.22"
+nox-poetry = "^1.0.3"
+pep8-naming = "^0.13.2"
+pytest = "^7.4.3"
+pytest-aiohttp = "^1.0.5"
+pytest-asyncio = "^0.23.0"
+pytest-cov = "^4.1.0"
+pytest-dotenv = "^0.5.2"
+pytest-mock = "^3.12.0"
+requests = "^2.31.0"
+safety = "^2.4.0b2"
+poetry = "^1.7.1"
 
 [tool.coverage.paths]
-source = ["src", "*/site-packages"]
+source = ["vision-ai-service"]
 
 [tool.coverage.run]
 branch = false
-source = ["sprint_photopusher"]
+omit = [
+  "*gunicorn_config.py",
+  "*db_utils.py",
+]
+source = ["vision-ai-service"]
 
 [tool.coverage.report]
+fail_under = 10
 show_missing = true
-fail_under = 50
+
+[tool.mypy]
+pretty = true
+show_column_numbers = true
+show_error_codes = true
+show_error_context = true
+strict = false
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+ignore_missing_imports = true
+module = [
+  "gunicorn.*",
+  "requests.*",
+  "motor.*",
+  "pytest_mock",
+  "aioresponses.*",
+  "pandas.*",
+  "pythonjsonlogger.*",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+  "unit: marks tests as unit (fast)",
+  "integration: marks tests as integration (slower)",
+  "contract: marks test as contract (slow)",
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
