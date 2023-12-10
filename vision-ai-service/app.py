@@ -37,17 +37,15 @@ logging.basicConfig(
     ),
 )
 def cli(url: str, directory: Any) -> None:
-    """CLI for monitoring directory and send content of files as json.
-
-    URL is the url to a webserver exposing an endpoint accepting your json.
+    """CLI for analysing video stream.
 
     To stop the vision-ai-service, press Control-C.
     \f
     Args:
-        url: the URL to a webserver exposing an endpoint accepting json.
+        url: the URL to a video stream.
         directory: relative path to the directory to watch
     """  # noqa: D301
     click.echo(f"\nWorking directory {os.getcwd()}")
-    click.echo(f"Sending photos to webserver at {url}")
+    click.echo(f"Analysing video at {url}")
 
     click.echo("Bye!\n")
