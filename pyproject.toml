@@ -18,10 +18,13 @@ python = ">=3.9,<4"
 pandas = "^2.1.3"
 requests = "^2.31.0"
 python-dotenv = "^1.0.0"
-Pillow = "^8.1.0"
 multidict = "^6.0.2"
 aiohttp = "^3.9.1"
 watchdog = "^3.0.0"
+piexif = "^1.1.3"
+pillow = "^10.1.0"
+ultralytics = "^8.0.228"
+click = "^8.1.7"
 
 
 [tool.poetry.group.dev.dependencies]
