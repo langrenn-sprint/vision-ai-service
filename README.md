@@ -52,24 +52,15 @@ Options:
 
 % git clone https://github.com/heming-langrenn/sprint-excel.git
 % cd vision-ai-service
-% pyenv local 3.9.1 3.7.9
+% pyenv local 3.11
 % poetry install
 ```
 
 ### Prepare .env filer (dummy parameter values supplied)
-LOGGING_LEVEL=DEBU
-PHOTO_FTP_DEST=ftp.server.no
-PHOTO_FTP_UID=uid@server.no
-PHOTO_FTP_PW=password
-PHOTO_FTP_BASE_URL=http://www.server.no/sprint/
-AZURE_VISION_SUBSCRIPTION_KEY=the_key_from_MS
-AZURE_VISION_ENDPOINT=azure_endpoint
-GOOGLE_APPLICATION_CREDENTIALS=credentials_file
-PHOTOPUSHER_SETTINGS_FILE=/home/github/vision-ai-service/vision-ai-service_settings.json
-USER_SERVICE_URL=http://localhost:8086
-WEBSERVER_UID=username
-WEBSERVER_PW=password
-WEBSERVER_TOKEN=token_from_user_service
+LOGGING_LEVEL=INFO
+PHOTOS_FILE_PATH=/Users/t520834/github/photo-service-gui/docs/photos
+VIDEO_URL=http://localhost:8080/video
+CAMERA_LOCATION=Finish
 
 ### Run all sessions
 ```
@@ -83,19 +74,10 @@ WEBSERVER_TOKEN=token_from_user_service
 ```
 % poetry shell
 % vision_ai_service --help
-### Test start: vision_ai_service -d tests/files/input/ http://resultat.skagenoslosprint.no
-### Test start: vision_ai_service -d tests/files/input/ http://localhost:8080
+### Test start: vision_ai_service
 
 ```
 Alternatively you can use `poetry run`:
 ```
 % poetry run vision_ai_service --help
 ```
-
-### Photopusher photo_settings (from vision-ai-service_settings.json)
-### All parameters must be in "brackets"
-CONFIDENCE_LIMIT - for cognitive services, a float between 0 and 1
-PHOTO_THUMB_SIZE - max height/width for thumbnail, an int
-PHOTO_WATERMARK_TEXT - text to watermark image, typically name of event
-AZURE_THUMB_SERVICE - "True" for Azure, anything else for Pillow
-AZURE_VISION_TEXT_SERVICE - "True" for Azure, anything else for Google

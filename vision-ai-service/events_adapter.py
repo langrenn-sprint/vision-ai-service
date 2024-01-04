@@ -5,6 +5,7 @@ import logging
 import os
 from zoneinfo import ZoneInfo
 
+
 class EventsAdapter:
     """Class representing events."""
 
@@ -43,7 +44,8 @@ class EventsAdapter:
         if format == "HH:MM":
             local_time = f"{time_now.strftime('%H')}:{time_now.strftime('%M')}"
         elif format == "log":
-            local_time = f"{time_now.strftime('%Y')}-{time_now.strftime('%m')}-{time_now.strftime('%d')}T{time_now.strftime('%X')}"
+            local_time = f"{time_now.strftime('%Y')}-{time_now.strftime('%m')}"
+            local_time += f"-{time_now.strftime('%d')}T{time_now.strftime('%X')}"
         else:
             local_time = time_now.strftime("%X")
         return local_time

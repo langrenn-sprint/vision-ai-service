@@ -134,3 +134,7 @@ dmypy.json
 
 # Pytype
 .pytype
+
+# Test files
+*.mp4
+*.pt
