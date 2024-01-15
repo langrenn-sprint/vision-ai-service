@@ -31,7 +31,7 @@ class VisionAIService:
         model = YOLO("yolov8n.pt")  # Load an official Detect model
 
         # Perform tracking with the model
-        results = model.track(source=video_uri, show=False, stream=True, tracker=SKI_TRACKER_YAML)
+        results = model.track(source=video_uri, show=False, stream=True, persist=True, tracker=SKI_TRACKER_YAML)
 
         for result in results:
             if firstDetection:
