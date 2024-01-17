@@ -61,6 +61,8 @@ LOGGING_LEVEL=INFO
 PHOTOS_FILE_PATH=/Users/t520834/github/photo-service-gui/docs/photos
 VIDEO_URL=http://localhost:8080/video
 CAMERA_LOCATION=Finish
+TRIGGER_LINE_XYXY=0.15:0.70:1:0.70
+DETECTION_BOX_MINIMUM_SIZE=0.08
 
 ### Run all sessions
 ```

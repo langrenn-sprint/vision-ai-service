@@ -2,6 +2,7 @@
 import datetime
 import json
 import logging
+import os
 
 from events_adapter import EventsAdapter
 import piexif
@@ -31,7 +32,13 @@ class VisionAIService:
         model = YOLO("yolov8n.pt")  # Load an official Detect model
 
         # Perform tracking with the model
-        results = model.track(source=video_uri, show=False, stream=True, persist=True, tracker=SKI_TRACKER_YAML)
+        results = model.track(
+            source=video_uri,
+            show=False,
+            stream=True,
+            persist=True,
+            tracker=SKI_TRACKER_YAML
+        )
 
         for result in results:
             if firstDetection:
@@ -64,35 +71,38 @@ class VisionAIService:
                                 crossedLineList = []  # reset the list if the first person crosses the line
                             if boxCrossedLine:
                                 if id not in crossedLineList:
-                                    crossedLineList.append(id)
-                                    logging.info(f"Line crossing! ID:{id}, pos:{xyxyn}")
-                                    # Show the results
-                                    im_array = result.plot()  # plot a BGR numpy array of predictions
-                                    im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
-                                    # set a timestamp with font size 50
-                                    draw = ImageDraw.Draw(im)
-                                    font_size = 50
-                                    font_color = (255, 0, 0)  # red
-                                    font = ImageFont.truetype("Arial", font_size)
-                                    current_time = datetime.datetime.now()
-                                    time_text = current_time.strftime('%Y%m%d %H:%M:%S')
-                                    draw.text((50, 50), time_text, font=font, fill=font_color)
 
-                                    exif_bytes = create_image_info(camera_location, time_text)
+                                    # ignore small boxes
+                                    boxValidation = validate_box(xyxyn)
+                                    if boxValidation:
+                                        crossedLineList.append(id)
+                                        logging.info(f"Line crossing! ID:{id}, pos:{xyxyn}")
+                                        # Show the results
+                                        im_array = result.plot()  # plot a BGR numpy array of predictions
+                                        im = Image.fromarray(im_array[..., ::-1])  # RGB PIL image
+                                        # set a timestamp with font size 50
+                                        draw = ImageDraw.Draw(im)
+                                        font_size = 50
+                                        font_color = (255, 0, 0)  # red
+                                        font = ImageFont.truetype("Arial", font_size)
+                                        current_time = datetime.datetime.now()
+                                        time_text = current_time.strftime('%Y%m%d %H:%M:%S')
+                                        draw.text((50, 50), time_text, font=font, fill=font_color)
+                                        exif_bytes = create_image_info(camera_location, time_text)
 
-                                    # save image to file - full size
-                                    timestamp = current_time.strftime('%Y%m%d_%H%M%S')
-                                    im.save(
-                                        f"{photos_file_path}/{camera_location}_{timestamp}_{id}.jpg",
-                                        exif=exif_bytes
-                                    )
+                                        # save image to file - full size
+                                        timestamp = current_time.strftime('%Y%m%d_%H%M%S')
+                                        im.save(
+                                            f"{photos_file_path}/{camera_location}_{timestamp}_{id}.jpg",
+                                            exif=exif_bytes
+                                        )
 
-                                    # crop to only person in box
-                                    create_crop_image(
-                                        im,
-                                        boxes.xyxy[y],
-                                        f"{photos_file_path}/{camera_location}_{timestamp}_{id}_crop.jpg"
-                                    )
+                                        # crop to only person in box
+                                        create_crop_image(
+                                            im,
+                                            boxes.xyxy[y],
+                                            f"{photos_file_path}/{camera_location}_{timestamp}_{id}_crop.jpg"
+                                        )
                         except TypeError as e:
                             logging.debug(f"TypeError: {e}")
                             pass  # ignore
@@ -107,6 +117,20 @@ class VisionAIService:
         except Exception as e:
             logging.error(f"Error: {e}")
         return trigger_line_xyxy_list
+
+
+def validate_box(xyxyn: list) -> bool:
+    """Function to filter out small boxes at the edges."""
+    boxValidation = True
+    box_min_size = float(os.getenv("DETECTION_BOX_MINIMUM_SIZE"))
+    box_with = xyxyn.tolist()[2] - xyxyn.tolist()[0]
+    box_heigth = xyxyn.tolist()[3] - xyxyn.tolist()[1]
+
+    if (box_with < box_min_size) or (box_heigth < box_min_size):
+        if (xyxyn.tolist()[2] > 0.98) or (xyxyn.tolist()[3] > 0.98):
+            return False
+
+    return boxValidation
 
 
 def is_below_line(point: list, trigger_line: list) -> bool:
@@ -230,4 +254,3 @@ def create_crop_image(
         )
     )
     imCrop.save(photos_file_name)
-    
