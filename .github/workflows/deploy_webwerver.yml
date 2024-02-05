@@ -1,14 +1,13 @@
-name: Install, build and test
+name: Test, build and deploy webserver
 
 on:
-  pull_request:
-    types: [ready_for_review, opened, reopened, synchronize]
+  push:
     branches:
       - main
 
 jobs:
-  install-build-and-test:
-    name: Install, build and test
+  build-and-deploy:
+    name: Build, test and deploy to GitHub Container registry
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
 
@@ -34,3 +33,14 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Tag and publish docker image to Github Container registry
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |-
+          docker tag ghcr.io/langrenn-sprint/vision-ai-service:test ghcr.io/langrenn-sprint/vision-ai-service:latest
+          docker rmi ghcr.io/langrenn-sprint/vision-ai-service:test
+          docker push ghcr.io/langrenn-sprint/vision-ai-service:latest

@@ -1,0 +1,16 @@
+version: '3'
+services:
+  vision-ai-service:
+    build: .
+    image: ghcr.io/langrenn-sprint/vision-ai-service:test
+    ports:
+      - 8080:8080
+    environment:
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - HOST_PORT=8080
+      - LOGGING_LEVEL=${LOGGING_LEVEL}
+    volumes:
+      - type: bind
+        source: .
+        target: /app

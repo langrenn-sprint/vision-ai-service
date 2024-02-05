@@ -1,19 +1,15 @@
 """Module for application looking at video and detecting line crossings."""
 import logging
 import os
+import time
 
 import click
-from dotenv import load_dotenv
 from vision_ai_service import VisionAIService
+from events_adapter import EventsAdapter
 
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
-load_dotenv()
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
-VIDEO_URL = os.getenv("VIDEO_URL")
-CAMERA_LOCATION = os.getenv("CAMERA_LOCATION")
-PHOTOS_FILE_PATH = os.getenv("PHOTOS_FILE_PATH")
-TRIGGER_LINE_XYXY = VisionAIService().get_trigger_line_xyxy_list(os.getenv("TRIGGER_LINE_XYXY"))
 
 logging.basicConfig(
     level=LOGGING_LEVEL,
@@ -26,24 +22,50 @@ logging.basicConfig(
 def main() -> None:
     """CLI for analysing video stream."""  # noqa: D301
     click.echo(f"\nWorking directory {os.getcwd()}")
-    click.echo(f"Analysing video at {VIDEO_URL}")
 
     try:
-        click.echo(f"Watching video at {VIDEO_URL}")
         click.echo(f"Logging level {LOGGING_LEVEL}")
         click.echo("Press Control-C to stop.")
-        click.echo("Waiting for a person to cross the finish line...")
-        VisionAIService().detect_crossings_with_ultraltyics(
-            VIDEO_URL,
-            CAMERA_LOCATION,
-            PHOTOS_FILE_PATH,
-            TRIGGER_LINE_XYXY
-        )
+        # photos_file_path = os.getenv("PHOTOS_FILE_PATH", "")
+        photos_file_path = "../photo-service-gui/photo_service_gui/files"
+        EventsAdapter().add_video_service_message("Vision AI is ready.")
+
+        while True:
+
+            click.echo("Vision AI is idle...")
+            analytics_running = EventsAdapter().get_global_setting("VIDEO_ANALYTICS_RUNNING")
+            analytics_start = EventsAdapter().get_global_setting("VIDEO_ANALYTICS_START")
+            stop_tracking = EventsAdapter().get_global_setting("VIDEO_ANALYTICS_STOP")
+            trigger_line = EventsAdapter().get_global_setting("DRAW_TRIGGER_LINE")
+            
+            if stop_tracking == "true":
+                EventsAdapter().update_global_setting(
+                    "VIDEO_ANALYTICS_STOP", "false"
+                )
+            elif (analytics_running == "false") and (analytics_start == "true"):
+                click.echo("Vision AI video detection is started...")
+                EventsAdapter().add_video_service_message("Starter AI video detection.")
+                EventsAdapter().update_global_setting(
+                    "VIDEO_ANALYTICS_START", "false"
+                )
+                result = VisionAIService().detect_crossings_with_ultraltyics(photos_file_path)
+                EventsAdapter().add_video_service_message("Avsluttet AI video detection.")
+
+                click.echo(f"Video detection complete - {result}")
+            elif (analytics_running == "false") and (trigger_line == "true"):
+                click.echo("Vision trigger line detection is started...")
+                EventsAdapter().update_global_setting(
+                    "DRAW_TRIGGER_LINE", "false"
+                )
+                result = VisionAIService().draw_trigger_line_with_ultraltyics(photos_file_path)
+                click.echo(f"Trigger line complete - {result}")
+            time.sleep(5)
+
     except Exception as e:
-        click.echo(f"Error: {e}\n")
+        EventsAdapter().add_video_service_message(f"Critical AI Error: {e}")
+        click.echo(f"Critical AI Error: {e}\n")
 
     click.echo("Bye!\n")
-
 
 if __name__ == "__main__":
     main()

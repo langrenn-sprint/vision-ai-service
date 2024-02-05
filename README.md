@@ -60,9 +60,9 @@ Options:
 LOGGING_LEVEL=INFO
 PHOTOS_FILE_PATH=/Users/t520834/github/photo-service-gui/docs/photos
 VIDEO_URL=http://localhost:8080/video
-CAMERA_LOCATION=Finish
-TRIGGER_LINE_XYXY=0.15:0.70:1:0.70
 DETECTION_BOX_MINIMUM_SIZE=0.08
+GLOBAL_SETTINGS_FILE=vision-ai-service/config/global_settings.json
+VIDEO_STATUS_FILE=vision-ai-service/config/video_status.json
 
 ### Run all sessions
 ```
