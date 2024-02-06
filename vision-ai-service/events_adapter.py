@@ -123,14 +123,14 @@ class EventsAdapter:
         local_time = ""
         timezone = event["timezone"]
         if timezone:
-            time_now = datetime.now(ZoneInfo(timezone))
+            t_n = datetime.now(ZoneInfo(timezone))
         else:
-            time_now = datetime.now()
+            t_n = datetime.now()
 
         if format == "HH:MM":
-            local_time = f"{time_now.strftime('%H')}:{time_now.strftime('%M')}"
+            local_time = f"{t_n.strftime('%H')}:{t_n.strftime('%M')}"
         elif format == "log":
-            local_time = f"{time_now.strftime('%Y')}-{time_now.strftime('%m')}-{time_now.strftime('%d')}T{time_now.strftime('%X')}"
+            local_time = f"{t_n.strftime('%Y')}-{t_n.strftime('%m')}-{t_n.strftime('%d')}T{t_n.strftime('%X')}"
         else:
-            local_time = time_now.strftime("%X")
+            local_time = t_n.strftime("%X")
         return local_time

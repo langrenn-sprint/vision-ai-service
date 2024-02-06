@@ -5,14 +5,13 @@ import logging
 import os
 from typing import List
 
+from events_adapter import EventsAdapter
 import piexif
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 from torch import tensor
 from ultralytics import YOLO
-
-from events_adapter import EventsAdapter
 
 tracker_file = EventsAdapter().get_env("SKI_TRACKER_YAML")
 SKI_TRACKER_YAML = f"{os.getcwd()}/{tracker_file}"
@@ -139,7 +138,7 @@ class VisionAIService:
 
     def draw_trigger_line_with_ultraltyics(
         self,
-        photos_file_path,
+        photos_file_path: str,
     ) -> str:
         """Analyze video and capture screenshot of trigger line."""
         trigger_line_xyxyn = get_trigger_line_xyxy_list()
@@ -304,7 +303,7 @@ def get_crop_image(im: Image, xyxy: tensor) -> Image:  # type: ignore
     return imCrop
 
 
-def save_crop_images(image_list: list, photos_file_name) -> None:
+def save_crop_images(image_list: list, photos_file_name: str) -> None:
     """Saves all crop images in one image file."""
     widths, heights = zip(*(i.size for i in image_list), strict=True)
 
