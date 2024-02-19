@@ -130,7 +130,8 @@ class EventsAdapter:
         if format == "HH:MM":
             local_time = f"{t_n.strftime('%H')}:{t_n.strftime('%M')}"
         elif format == "log":
-            local_time = f"{t_n.strftime('%Y')}-{t_n.strftime('%m')}-{t_n.strftime('%d')}T{t_n.strftime('%X')}"
+            local_day = f"{t_n.strftime('%Y')}-{t_n.strftime('%m')}-{t_n.strftime('%d')}"
+            local_time = f"{local_day}T{t_n.strftime('%X')}"
         else:
             local_time = t_n.strftime("%X")
         return local_time

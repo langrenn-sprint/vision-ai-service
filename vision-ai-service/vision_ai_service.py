@@ -3,7 +3,6 @@ import datetime
 import json
 import logging
 import os
-from typing import List
 
 from events_adapter import EventsAdapter
 import piexif
@@ -25,9 +24,8 @@ class VisionAIService:
         photos_file_path: str,
     ) -> str:
         """Analyze video and capture screenshots of line crossings."""
-        crossedLineList: List[float] = []  # id of people who crossed the line
-        crossed08Line = {}  # type: ignore
-        crossed09Line = {}  # type: ignore
+        lineCrossings = {}
+        lineCrossings = reset_line_crossings(lineCrossings)
         firstDetection = True
         trigger_line_xyxyn = get_trigger_line_xyxy_list()
         video_url = EventsAdapter().get_global_setting("VIDEO_URL")
@@ -53,16 +51,7 @@ class VisionAIService:
                     result, camera_location, photos_file_path, trigger_line_xyxyn
                 )
             current_time = datetime.datetime.now()
-            time_text = current_time.strftime("%Y%m%d %H:%M:%S")
-            stop_tracking = EventsAdapter().get_global_setting("VIDEO_ANALYTICS_STOP")
-            if stop_tracking == "true":
-                EventsAdapter().add_video_service_message(
-                    "Video analytics stopped."
-                )
-                EventsAdapter().update_global_setting(
-                    "VIDEO_ANALYTICS_RUNNING", "false"
-                )
-                EventsAdapter().update_global_setting("VIDEO_ANALYTICS_STOP", "false")
+            if check_stop_tracking():
                 return "Video analytics stopped."
 
             boxes = result.boxes
@@ -71,12 +60,10 @@ class VisionAIService:
 
                 for y in range(len(class_values)):
                     try:
-                        id = boxes.id[y].item()
+                        id = int(boxes.id[y].item())
                         # reset the list if counting is reset
-                        if id == 1 and len(crossedLineList) > 1:
-                            crossedLineList.clear()
-                            crossed08Line.clear()
-                            crossed09Line.clear()
+                        if id == 1 and len(lineCrossings["100"]) > 1:
+                            lineCrossings = reset_line_crossings(lineCrossings)
                         if class_values[y] == 0:  # identify person
                             xyxyn = boxes.xyxyn[y]
                             boxCrossedLine = is_below_line(xyxyn, trigger_line_xyxyn)
@@ -90,46 +77,22 @@ class VisionAIService:
                                     im_array[..., ::-1]
                                 )  # RGB PIL image
                                 xyxy = boxes.xyxy[y]
-                                if boxCrossedLine == "80":
-                                    if id not in crossed08Line.keys():
-                                        crossed08Line[id] = get_crop_image(im, xyxy)
-                                elif boxCrossedLine == "90":
-                                    if id not in crossed09Line.keys():
-                                        crossed09Line[id] = get_crop_image(im, xyxy)
+                                if boxCrossedLine != "100":
+                                    if id not in lineCrossings[boxCrossedLine].keys():
+                                        lineCrossings[boxCrossedLine][id] = get_crop_image(im, xyxy)
                                 else:
-                                    if id not in crossedLineList:
-                                        crossedLineList.append(id)
-                                        EventsAdapter().add_video_service_message(
-                                            f"Line crossing! ID:{id}"
+                                    if id not in lineCrossings[boxCrossedLine]:
+                                        lineCrossings[boxCrossedLine].append(id)
+                                        save_image(
+                                            im,
+                                            camera_location,
+                                            current_time,
+                                            photos_file_path,
+                                            id,
+                                            lineCrossings,
+                                            xyxy,
                                         )
 
-                                        exif_bytes = get_image_info(
-                                            camera_location, time_text
-                                        )
-
-                                        # save image to file - full size
-                                        timestamp = current_time.strftime(
-                                            "%Y%m%d_%H%M%S"
-                                        )
-                                        im.save(
-                                            f"{photos_file_path}/{camera_location}_{timestamp}_{id}.jpg",
-                                            exif=exif_bytes,
-                                        )
-
-                                        # crop to only person in box
-                                        crop_im_list = []
-                                        if id in crossed08Line.keys():
-                                            crop_im_list.append(crossed08Line[id])
-                                            crossed08Line.pop(id)
-                                        if id in crossed09Line.keys():
-                                            crop_im_list.append(crossed09Line[id])
-                                            crossed09Line.pop(id)
-                                        crop_im_list.append(get_crop_image(im, xyxy))
-
-                                        save_crop_images(
-                                            crop_im_list,
-                                            f"{photos_file_path}/{camera_location}_{timestamp}_{id}_crop.jpg",
-                                        )
                     except TypeError as e:
                         logging.debug(f"TypeError: {e}")
                         pass  # ignore
@@ -178,15 +141,21 @@ def get_trigger_line_xyxy_list() -> list:
 
 
 def validate_box(xyxyn: tensor) -> bool:  # type: ignore
-    """Function to filter out small boxes at the edges."""
+    """Function to filter out boxes not relevant."""
     boxValidation = True
-    box_min_size = float(EventsAdapter().get_env("DETECTION_BOX_MINIMUM_SIZE"))
+    box_min_size = float(EventsAdapter().get_global_setting("DETECTION_BOX_MINIMUM_SIZE"))
     box_with = xyxyn.tolist()[2] - xyxyn.tolist()[0]  # type: ignore
     box_heigth = xyxyn.tolist()[3] - xyxyn.tolist()[1]  # type: ignore
 
+    # check if box is too small and at the edge
     if (box_with < box_min_size) or (box_heigth < box_min_size):
         if (xyxyn.tolist()[2] > 0.98) or (xyxyn.tolist()[3] > 0.98):  # type: ignore
             return False
+
+    # check if box is too big
+    box_max_size = float(EventsAdapter().get_global_setting("DETECTION_BOX_MAXIMUM_SIZE"))
+    if (box_with > box_max_size) or (box_heigth > box_max_size):
+        return False
 
     return boxValidation
 
@@ -303,7 +272,13 @@ def get_crop_image(im: Image, xyxy: tensor) -> Image:  # type: ignore
     return imCrop
 
 
-def save_crop_images(image_list: list, photos_file_name: str) -> None:
+def save_crop_images(
+        image_list: list,
+        photos_file_path: str,
+        camera_location: str,
+        current_time: datetime,
+        id: str
+) -> None:
     """Saves all crop images in one image file."""
     widths, heights = zip(*(i.size for i in image_list), strict=True)
 
@@ -317,4 +292,80 @@ def save_crop_images(image_list: list, photos_file_name: str) -> None:
         new_im.paste(im, (x_offset, 0))
         x_offset += im.size[0]
 
-    new_im.save(photos_file_name)
+    timestamp = current_time.strftime(
+        "%Y%m%d_%H%M%S"
+    )
+    new_im.save(f"{photos_file_path}/{camera_location}_{timestamp}_{id}_crop.jpg")
+
+
+def save_image(
+        im: Image,
+        camera_location: str,
+        current_time: datetime,
+        photos_file_path: str,
+        id: str,
+        lineCrossings: dict,
+        xyxy: tensor
+) -> None:
+    """Save image and crop_images to file."""
+    EventsAdapter().add_video_service_message(
+        f"Line crossing! ID:{id}"
+    )
+    time_text = current_time.strftime("%Y%m%d %H:%M:%S")
+
+    exif_bytes = get_image_info(
+        camera_location, time_text
+    )
+
+    # save image to file - full size
+    timestamp = current_time.strftime(
+        "%Y%m%d_%H%M%S"
+    )
+    im.save(
+        f"{photos_file_path}/{camera_location}_{timestamp}_{id}.jpg",
+        exif=exif_bytes,
+    )
+
+    # save crop images
+    crop_im_list = []
+    if id in lineCrossings["80"].keys():
+        crop_im_list.append(lineCrossings["80"][id])
+        lineCrossings["80"].pop(id)
+    if id in lineCrossings["90"].keys():
+        crop_im_list.append(lineCrossings["90"][id])
+        lineCrossings["90"].pop(id)
+    crop_im_list.append(get_crop_image(im, xyxy))
+
+    save_crop_images(
+        crop_im_list,
+        photos_file_path,
+        camera_location,
+        current_time,
+        id,
+    )
+
+
+def check_stop_tracking() -> bool:
+    """Check status flags and determine if tracking should continue."""
+    stop_tracking = EventsAdapter().get_global_setting("VIDEO_ANALYTICS_STOP")
+    if stop_tracking == "true":
+        EventsAdapter().add_video_service_message(
+            "Video analytics stopped."
+        )
+        EventsAdapter().update_global_setting(
+            "VIDEO_ANALYTICS_RUNNING", "false"
+        )
+        EventsAdapter().update_global_setting("VIDEO_ANALYTICS_STOP", "false")
+        return True
+    return False
+
+
+def reset_line_crossings(lineCrossings: dict) -> dict:
+    """Reset and init line crossings."""
+    lineCrossings.clear()
+    lineCrossings = {
+        "100": [],
+        "90": {},
+        "80": {}
+    }
+    return lineCrossings

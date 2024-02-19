@@ -39,7 +39,6 @@ Options:
 ```
 % curl https://pyenv.run | bash
 % pyenv install 3.9.1
-% pyenv install 3.7.9
 % python3 -m pip install --user pipx
 % python3 -m pipx ensurepath
 % pipx install poetry

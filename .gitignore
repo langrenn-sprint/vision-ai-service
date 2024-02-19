@@ -138,3 +138,4 @@ dmypy.json
 # Test files
 *.mp4
 *.pt
+.DS_Store
