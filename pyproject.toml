@@ -30,7 +30,7 @@ click = "^8.1.7"
 [tool.poetry.group.dev.dependencies]
 aiohttp-devtools = "^1.1.0"
 aioresponses = "^0.7.6"
-black = "^23.11.0"
+black = "^24.3.0"
 codecov = "^2.1.13"
 coverage = "^7.3.2"
 flake8 = "^6.1.0"
