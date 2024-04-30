@@ -37,7 +37,7 @@ class VisionAIService:
         # Perform tracking with the model
         results = model.track(
             source=video_url,
-            show=False,
+            show=True,
             stream=True,
             persist=True,
             tracker=SKI_TRACKER_YAML,

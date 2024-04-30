@@ -2,29 +2,7 @@
 
 Analyserer en videostrøm for passeringer (people crossing line). Tar skjermbilde av passeringen. 
 
-## Overvåke folder for endringer i filer
-
-```
-% pip install vision-ai-service
-% vision_ai_service --help                                 
-Usage: vision_ai_service [OPTIONS] URL
-
-  CLI for monitoring directory and send content of files as json to
-  webserver URL.
-
-  URL is the url to a webserver exposing an endpoint accepting your json.
-
-  To stop the vision-ai-service, press Control-C.
-
-Options:
-  --version                  Show the version and exit.
-  -d, --directory DIRECTORY  Relative path to the directory to watch
-                             [default: /home/stigbd/src/heming-
-                             langrenn/sprint-excel/vision-ai-service]
-
-  -h, --help                 Show this message and exit.
-
-```
+Usage: python3 vision-ai-service/app.py
 
 ## Development
 ### Requirements
@@ -34,22 +12,12 @@ Options:
 - [nox](https://nox.thea.codes/en/stable/)
 - [nox-poetry](https://github.com/cjolowicz/nox-poetry)
 - [pillow](https://pypi.org/project/Pillow/)
-- [google-cloud-vision]
 
-```
-% curl https://pyenv.run | bash
-% pyenv install 3.9.1
-% python3 -m pip install --user pipx
-% python3 -m pipx ensurepath
-% pipx install poetry
-% pipx install nox
-% pipx inject nox nox-poetry
-```
 
 ### Install
 ```
 
-% git clone https://github.com/heming-langrenn/sprint-excel.git
+% git clone https://github.com/heming-langrenn/vision-ai-service.git
 % cd vision-ai-service
 % pyenv local 3.11
 % poetry install
@@ -70,15 +38,4 @@ VIDEO_STATUS_FILE=vision-ai-service/config/video_status.json
 ### Run all tests with coverage reporting
 ```
 % nox -rs tests
-```
-### Run cli script
-```
-% poetry shell
-% vision_ai_service --help
-### Test start: vision_ai_service
-
-```
-Alternatively you can use `poetry run`:
-```
-% poetry run vision_ai_service --help
 ```

@@ -6,8 +6,10 @@ import time
 import click
 from events_adapter import EventsAdapter
 from vision_ai_service import VisionAIService
+from object_counting_service import ObjectCountingService
+from object_detector_service import ObjectDetectorService
 
-
+# CLI settings
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
 
@@ -46,7 +48,11 @@ def main() -> None:
                 EventsAdapter().update_global_setting(
                     "VIDEO_ANALYTICS_START", "false"
                 )
-                result = VisionAIService().detect_crossings_with_ultraltyics(photos_file_path)
+                # result = VisionAIService().detect_crossings_with_ultraltyics(photos_file_path)
+                # result = ObjectCountingService().detect_crossings_with_ultraltyics(photos_file_path)
+                detector = ObjectDetectorService(capture_index=0)
+                detector()
+                
                 EventsAdapter().add_video_service_message("Avsluttet AI video detection.")
 
                 click.echo(f"Video detection complete - {result}")

@@ -32,7 +32,8 @@ class EventsAdapter:
         """Get global settings from global_settings.json file."""
         # cf = os.getenv("GLOBAL_SETTINGS_FILE")
         # config_file = f"{os.getcwd()}/{cf}"
-        config_file = "/Users/t520834/github/photo-service-gui/photo_service_gui/config/global_settings.json"
+        # config_file = "/Users/t520834/github/photo-service-gui/photo_service_gui/config/global_settings.json"
+        config_file = "vision-ai-service/config/global_settings.json"
         try:
             with open(config_file, "r") as json_file:
                 settings = json.load(json_file)
