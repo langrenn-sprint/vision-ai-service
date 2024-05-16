@@ -5,14 +5,12 @@ import time
 
 import click
 from events_adapter import EventsAdapter
-from vision_ai_service import VisionAIService
-from object_counting_service import ObjectCountingService
-from object_detector_service import ObjectDetectorService
+from vision_ai_service_v2 import VisionAIService2
 
-# CLI settings
+# get base settings
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+photos_file_path = os.getenv("PHOTOS_FILE_PATH", ".")
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
-
 logging.basicConfig(
     level=LOGGING_LEVEL,
     format="%(asctime)s - %(message)s",
@@ -26,8 +24,6 @@ def main() -> None:
     click.echo(f"\nWorking directory {os.getcwd()}")
     click.echo(f"Logging level {LOGGING_LEVEL}")
     click.echo("Press Control-C to stop.")
-    # photos_file_path = os.getenv("PHOTOS_FILE_PATH", "")
-    photos_file_path = "../photo-service-gui/photo_service_gui/files"
     EventsAdapter().add_video_service_message("Vision AI is ready.")
 
     while True:
@@ -48,20 +44,16 @@ def main() -> None:
                 EventsAdapter().update_global_setting(
                     "VIDEO_ANALYTICS_START", "false"
                 )
-                # result = VisionAIService().detect_crossings_with_ultraltyics(photos_file_path)
-                # result = ObjectCountingService().detect_crossings_with_ultraltyics(photos_file_path)
-                detector = ObjectDetectorService(capture_index=0)
-                detector()
-                
-                EventsAdapter().add_video_service_message("Avsluttet AI video detection.")
+                result = VisionAIService2().detect_crossings_with_ultraltyics(photos_file_path)
 
+                EventsAdapter().add_video_service_message("Avsluttet AI video detection.")
                 click.echo(f"Video detection complete - {result}")
             elif (analytics_running == "false") and (trigger_line == "true"):
                 click.echo("Vision trigger line detection is started...")
                 EventsAdapter().update_global_setting(
                     "DRAW_TRIGGER_LINE", "false"
                 )
-                result = VisionAIService().draw_trigger_line_with_ultraltyics(photos_file_path)
+                result = VisionAIService2().draw_trigger_line_with_ultraltyics(photos_file_path)
                 click.echo(f"Trigger line complete - {result}")
             elif (analytics_running == "true"):
                 # invalid scenario - reset
@@ -71,8 +63,8 @@ def main() -> None:
             time.sleep(5)
 
         except Exception as e:
-            EventsAdapter().add_video_service_message(f"Critical AI Error: {e}")
-            click.echo(f"Critical AI Error: {e}\n")
+            EventsAdapter().add_video_service_message(f"Critical error: {e}")
+            click.echo(f"Critical error: {e}\n")
 
     click.echo("Bye!\n")
 

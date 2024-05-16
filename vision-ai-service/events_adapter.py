@@ -10,7 +10,17 @@ class EventsAdapter:
     """Class representing events."""
 
     def get_env(self, param_name: str) -> str:
-        """Get settings from .env file."""
+        """Get settings from .env file.
+
+        Args:
+            param_name: The name of the environment variable to retrieve.
+
+        Returns:
+            The value of the environment variable, or None if the variable is not found.
+
+        Raises:
+            Exception: If an error occurs while reading the .env file.
+        """
         cf = ".env"
         config_file = f"{os.getcwd()}/{cf}"
         try:
@@ -30,10 +40,7 @@ class EventsAdapter:
 
     def get_global_setting(self, param_name: str) -> str:
         """Get global settings from global_settings.json file."""
-        # cf = os.getenv("GLOBAL_SETTINGS_FILE")
-        # config_file = f"{os.getcwd()}/{cf}"
-        # config_file = "/Users/t520834/github/photo-service-gui/photo_service_gui/config/global_settings.json"
-        config_file = "vision-ai-service/config/global_settings.json"
+        config_file = os.getenv("GLOBAL_SETTINGS_FILE")
         try:
             with open(config_file, "r") as json_file:
                 settings = json.load(json_file)

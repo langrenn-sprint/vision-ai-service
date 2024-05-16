@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vision-ai-service"
-version = "0.8.0"
+version = "0.9.0"
 description = "A tool to analyse video stream and detect people crossing line."
 authors = ["Stig B. Dørmænen <stigbd@gmail.com>", "Heming Harnæs <heming.harnaes@gmail.com"]
 license = "Apache-2.0"
