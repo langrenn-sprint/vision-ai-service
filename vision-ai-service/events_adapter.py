@@ -1,4 +1,5 @@
 """Module for events adapter."""
+
 from datetime import datetime
 import json
 import logging
@@ -32,10 +33,9 @@ class EventsAdapter:
                         key, value = line.split("=")
                         return value
         except Exception as e:
-            logging.error(
-                f"Env {param_name} not found. File path {config_file} - {e}"
-            )
-            raise Exception from e
+            err_info = f"Erorr loading env {param_name}. File path {config_file} - {e}"
+            logging.error(err_info)
+            raise Exception(err_info) from None
         return None
 
     def get_global_setting(self, param_name: str) -> str:
@@ -62,8 +62,9 @@ class EventsAdapter:
             with open(config_file, "r") as json_file:
                 video_status = json.load(json_file)
         except Exception as e:
-            logging.error(f"Erorr loading video status. File path {config_file} - {e}")
-            raise Exception from e
+            err_info = f"Erorr loading video status. File path {config_file} - {e}"
+            logging.error(err_info)
+            raise Exception(err_info) from None
         return video_status
 
     def add_video_service_message(self, message: str) -> None:
@@ -91,8 +92,9 @@ class EventsAdapter:
                 json.dump(video_status, json_file)
 
         except Exception as e:
-            logging.error(f"Erorr updating video status. File path {config_file} - {e}")
-            raise Exception from e
+            err_info = f"Erorr updating video status. File path {config_file} - {e}"
+            logging.error(err_info)
+            raise Exception(err_info) from None
 
     def update_global_setting(self, param_name: str, new_value: str) -> None:
         """Update global_settings file."""
@@ -112,10 +114,9 @@ class EventsAdapter:
                 json.dump(settings, json_file)
 
         except Exception as e:
-            logging.error(
-                f"Global setting {param_name} not found. File {config_file} - {e}"
-            )
-            raise Exception from e
+            err_info = f"Erorr updating global setting {param_name}. File path {config_file} - {e}"
+            logging.error(err_info)
+            raise Exception(err_info) from None
 
     def get_local_datetime_now(self, event: dict) -> datetime:
         """Return local datetime object, time zone adjusted from event info."""
@@ -138,7 +139,9 @@ class EventsAdapter:
         if format == "HH:MM":
             local_time = f"{t_n.strftime('%H')}:{t_n.strftime('%M')}"
         elif format == "log":
-            local_day = f"{t_n.strftime('%Y')}-{t_n.strftime('%m')}-{t_n.strftime('%d')}"
+            local_day = (
+                f"{t_n.strftime('%Y')}-{t_n.strftime('%m')}-{t_n.strftime('%d')}"
+            )
             local_time = f"{local_day}T{t_n.strftime('%X')}"
         else:
             local_time = t_n.strftime("%X")

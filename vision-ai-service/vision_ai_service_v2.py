@@ -1,4 +1,5 @@
 """Module for video services."""
+
 import datetime
 import json
 import logging
@@ -32,8 +33,6 @@ class VisionAIService2:
         Returns:
             A string indicating the status of the video analytics.
 
-        Raises:
-            Exception: If an error occurs during video analytics.
         """
         crossings = {}
         crossings = VisionAIService2().reset_line_crossings(crossings)
@@ -80,7 +79,9 @@ class VisionAIService2:
                         id = int(boxes.id[y].item())
                         # reset the list if counting is reset
                         if id == 1 and len(crossings["100"]) > 1:
-                            crossings = VisionAIService2().reset_line_crossings(crossings)
+                            crossings = VisionAIService2().reset_line_crossings(
+                                crossings
+                            )
                         if class_values[y] == 0:  # identify person
                             xyxyn = boxes.xyxyn[y]
                             boxCrossedLine = VisionAIService2().is_below_line(xyxyn)
@@ -92,7 +93,9 @@ class VisionAIService2:
                                 xyxy = boxes.xyxy[y]
                                 if boxCrossedLine != "100":
                                     if id not in crossings[boxCrossedLine].keys():
-                                        crossings[boxCrossedLine][id] = self.get_crop_image(img_highres, xyxy)
+                                        crossings[boxCrossedLine][id] = (
+                                            self.get_crop_image(img_highres, xyxy)
+                                        )
                                 else:
                                     if id not in crossings[boxCrossedLine]:
                                         crossings[boxCrossedLine].append(id)
@@ -119,18 +122,28 @@ class VisionAIService2:
     def get_trigger_line_xyxy_list(self) -> list:
         """Get list of trigger line coordinates."""
         trigger_line_xyxy = EventsAdapter().get_global_setting("TRIGGER_LINE_XYXYN")
+
         trigger_line_xyxy_list = []
 
         try:
             trigger_line_xyxy_list = [float(i) for i in trigger_line_xyxy.split(":")]
         except Exception as e:
-            logging.error(f"Error: {e}")
+            logging.error(f"Error reading TRIGGER_LINE_XYXYN: {e}")
+            raise e
+
+        # validate for correct number of coordinates
+        if len(trigger_line_xyxy_list) != 4:
+            informasjon = "TRIGGER_LINE_XYXYN must have 4 numbers, colon-separated."
+            logging.error(f"{informasjon} {trigger_line_xyxy}")
+            raise Exception(f"{informasjon} {trigger_line_xyxy}")
         return trigger_line_xyxy_list
 
     def validate_box(self, xyxyn: tensor) -> bool:  # type: ignore
         """Function to filter out boxes not relevant."""
         boxValidation = True
-        box_min_size = float(EventsAdapter().get_global_setting("DETECTION_BOX_MINIMUM_SIZE"))
+        box_min_size = float(
+            EventsAdapter().get_global_setting("DETECTION_BOX_MINIMUM_SIZE")
+        )
         box_with = xyxyn.tolist()[2] - xyxyn.tolist()[0]  # type: ignore
         box_heigth = xyxyn.tolist()[3] - xyxyn.tolist()[1]  # type: ignore
 
@@ -140,7 +153,9 @@ class VisionAIService2:
                 return False
 
         # check if box is too big
-        box_max_size = float(EventsAdapter().get_global_setting("DETECTION_BOX_MAXIMUM_SIZE"))
+        box_max_size = float(
+            EventsAdapter().get_global_setting("DETECTION_BOX_MAXIMUM_SIZE")
+        )
         if (box_with > box_max_size) or (box_heigth > box_max_size):
             return False
 
@@ -227,9 +242,7 @@ class VisionAIService2:
 
             # save image to file - full size
             im.save(f"{photos_file_path}/{camera_location}_line_config.jpg")
-            EventsAdapter().add_video_service_message(
-                "Trigger line photo created"
-            )
+            EventsAdapter().add_video_service_message("Trigger line photo created")
 
         except TypeError as e:
             logging.debug(f"TypeError: {e}")
@@ -238,10 +251,7 @@ class VisionAIService2:
     def get_image_info(self, camera_location: str, time_text: str) -> bytes:
         """Create image info EXIF data."""
         # set the params
-        image_info = {
-            "passeringspunkt": camera_location,
-            "passeringstid": time_text
-        }
+        image_info = {"passeringspunkt": camera_location, "passeringstid": time_text}
 
         # create the EXIF data and convert to bytes
         exif_dict = {"0th": {piexif.ImageIFD.ImageDescription: json.dumps(image_info)}}
@@ -261,7 +271,7 @@ class VisionAIService2:
         photos_file_path: str,
         camera_location: str,
         current_time: datetime,
-        id: str
+        id: str,
     ) -> None:
         """Saves all crop images in one image file."""
         widths, heights = zip(*(i.size for i in image_list), strict=True)
@@ -276,9 +286,7 @@ class VisionAIService2:
             new_im.paste(im, (x_offset, 0))
             x_offset += im.size[0]
 
-        timestamp = current_time.strftime(
-            "%Y%m%d_%H%M%S"
-        )
+        timestamp = current_time.strftime("%Y%m%d_%H%M%S")
         new_im.save(f"{photos_file_path}/{camera_location}_{timestamp}_{id}_crop.jpg")
 
     def save_image(
@@ -289,17 +297,13 @@ class VisionAIService2:
         photos_file_path: str,
         id: str,
         crossings: dict,
-        xyxy: tensor
+        xyxy: tensor,
     ) -> None:
         """Save image and crop_images to file."""
-        EventsAdapter().add_video_service_message(
-            f"Line crossing! ID:{id}"
-        )
+        EventsAdapter().add_video_service_message(f"Line crossing! ID:{id}")
         time_text = current_time.strftime("%Y%m%d %H:%M:%S")
 
-        exif_bytes = VisionAIService2().get_image_info(
-            camera_location, time_text
-        )
+        exif_bytes = VisionAIService2().get_image_info(camera_location, time_text)
 
         # draw a line across the image to illustrate the finish line
         trigger_line_xyxyn = VisionAIService2().get_trigger_line_xyxy_list()
@@ -316,9 +320,7 @@ class VisionAIService2:
         )
 
         # save image to file - full size
-        timestamp = current_time.strftime(
-            "%Y%m%d_%H%M%S"
-        )
+        timestamp = current_time.strftime("%Y%m%d_%H%M%S")
         im.save(
             f"{photos_file_path}/{camera_location}_{timestamp}_{id}.jpg",
             exif=exif_bytes,
@@ -346,12 +348,8 @@ class VisionAIService2:
         """Check status flags and determine if tracking should continue."""
         stop_tracking = EventsAdapter().get_global_setting("VIDEO_ANALYTICS_STOP")
         if stop_tracking == "true":
-            EventsAdapter().add_video_service_message(
-                "Video analytics stopped."
-            )
-            EventsAdapter().update_global_setting(
-                "VIDEO_ANALYTICS_RUNNING", "false"
-            )
+            EventsAdapter().add_video_service_message("Video analytics stopped.")
+            EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "false")
             EventsAdapter().update_global_setting("VIDEO_ANALYTICS_STOP", "false")
             return True
         return False
@@ -359,9 +357,5 @@ class VisionAIService2:
     def reset_line_crossings(self, crossings: dict) -> dict:
         """Reset and init line crossings."""
         crossings.clear()
-        crossings = {
-            "100": [],
-            "90": {},
-            "80": {}
-        }
+        crossings = {"100": [], "90": {}, "80": {}}
         return crossings

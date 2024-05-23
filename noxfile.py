@@ -1,4 +1,5 @@
 """Nox sessions."""
+
 import sys
 
 import nox
@@ -11,7 +12,8 @@ nox.options.reuse_existing_virtualenvs = True
 nox.options.stop_on_first_error = True
 nox.options.sessions = (
     "lint",
-    "pytype",
+    "black",
+    "safety",
 )
 
 
@@ -33,12 +35,6 @@ def clean(session: Session) -> None:
         "rm",
         "-rf",
         ".pytest_cache",
-        external=True,
-    )
-    session.run(
-        "rm",
-        "-rf",
-        ".pytype",
         external=True,
     )
     session.run(
@@ -109,11 +105,3 @@ def mypy(session: Session) -> None:
     session.run("mypy", *args)
     if not session.posargs:
         session.run("mypy", f"--python-executable={sys.executable}", "noxfile.py")
-
-
-@session(python=["3.11"])
-def pytype(session: Session) -> None:
-    """Run the static type checker using pytype."""
-    args = session.posargs or ["--disable=import-error", *locations]
-    session.install("pytype")
-    session.run("pytype", *args)
