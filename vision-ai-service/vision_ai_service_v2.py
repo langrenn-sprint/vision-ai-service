@@ -35,14 +35,15 @@ class VisionAIService2:
         firstDetection = True
         camera_location = EventsAdapter().get_global_setting("CAMERA_LOCATION")
         show_video = EventsAdapter().get_global_setting_bool("SHOW_VIDEO")
-        
         informasjon = ""
 
         # Load an official or custom model
         model = YOLO("yolov8n.pt")  # Load an official Detect model
 
         # Perform tracking with the model
-        results = model.track(source=photos_file_path, show=show_video, stream=True, persist=True)
+        results = model.track(
+            source=photos_file_path, show=show_video, stream=True, persist=True
+        )
         # open new stream to capture higher quality image
         cap = cv2.VideoCapture(photos_file_path)
         EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "true")

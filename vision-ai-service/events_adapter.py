@@ -77,7 +77,9 @@ class EventsAdapter:
             with open(config_file, "r") as json_file:
                 video_status = json.load(json_file)
         except Exception as e:
-            err_info = f"Error getting video status message. File path {config_file} - {e}"
+            err_info = (
+                f"Error getting video status message. File path {config_file} - {e}"
+            )
             logging.error(err_info)
             raise Exception(err_info) from e
         return video_status
@@ -105,7 +107,9 @@ class EventsAdapter:
                 json.dump(video_status, json_file)
 
         except Exception as e:
-            err_info = f"Error adding video service message. File path {config_file} - {e}"
+            err_info = (
+                f"Error adding video service message. File path {config_file} - {e}"
+            )
             logging.error(err_info)
             raise Exception(err_info) from e
 

@@ -47,8 +47,12 @@ def main() -> None:
             analytics_start = EventsAdapter().get_global_setting_bool(
                 "VIDEO_ANALYTICS_START"
             )
-            stop_tracking = EventsAdapter().get_global_setting_bool("VIDEO_ANALYTICS_STOP")
-            draw_trigger_line = EventsAdapter().get_global_setting_bool("DRAW_TRIGGER_LINE")
+            stop_tracking = EventsAdapter().get_global_setting_bool(
+                "VIDEO_ANALYTICS_STOP"
+            )
+            draw_trigger_line = EventsAdapter().get_global_setting_bool(
+                "DRAW_TRIGGER_LINE"
+            )
 
             if stop_tracking:
                 EventsAdapter().update_global_setting("VIDEO_ANALYTICS_STOP", "false")
