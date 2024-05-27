@@ -3,7 +3,6 @@
 import datetime
 import json
 import logging
-import os
 
 import cv2
 from events_adapter import EventsAdapter
@@ -13,9 +12,6 @@ from PIL import ImageDraw
 from PIL import ImageFont
 from torch import tensor
 from ultralytics import YOLO
-
-tracker_file = EventsAdapter().get_env("SKI_TRACKER_YAML")
-SKI_TRACKER_YAML = f"{os.getcwd()}/{tracker_file}"
 
 
 class VisionAIService2:
@@ -45,13 +41,7 @@ class VisionAIService2:
         model = YOLO("yolov8n.pt")  # Load an official Detect model
 
         # Perform tracking with the model
-        results = model.track(
-            source=video_url,
-            show=True,
-            stream=True,
-            persist=True,
-            tracker=SKI_TRACKER_YAML,
-        )
+        results = model.track(source=video_url, show=True, stream=True, persist=True)
         # open new stream to capture higher quality image
         cap = cv2.VideoCapture(video_url)
         EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "true")
@@ -59,7 +49,6 @@ class VisionAIService2:
         for result in results:
             # get high res screenshot
             current_time = datetime.datetime.now()
-            logging.info(f"Start result loop - time: {current_time}")
             ret_save, img = cap.read()
             # Convert the frame to RBG
             img_array = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
