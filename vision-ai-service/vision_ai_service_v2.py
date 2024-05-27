@@ -33,17 +33,18 @@ class VisionAIService2:
         crossings = {}
         crossings = VisionAIService2().reset_line_crossings(crossings)
         firstDetection = True
-        video_url = EventsAdapter().get_global_setting("VIDEO_URL")
         camera_location = EventsAdapter().get_global_setting("CAMERA_LOCATION")
+        show_video = EventsAdapter().get_global_setting_bool("SHOW_VIDEO")
+        
         informasjon = ""
 
         # Load an official or custom model
         model = YOLO("yolov8n.pt")  # Load an official Detect model
 
         # Perform tracking with the model
-        results = model.track(source=video_url, show=True, stream=True, persist=True)
+        results = model.track(source=photos_file_path, show=show_video, stream=True, persist=True)
         # open new stream to capture higher quality image
-        cap = cv2.VideoCapture(video_url)
+        cap = cv2.VideoCapture(photos_file_path)
         EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "true")
 
         for result in results:
@@ -335,11 +336,11 @@ class VisionAIService2:
 
     def check_stop_tracking(self) -> bool:
         """Check status flags and determine if tracking should continue."""
-        stop_tracking = EventsAdapter().get_global_setting("VIDEO_ANALYTICS_STOP")
-        if stop_tracking == "true":
+        stop_tracking = EventsAdapter().get_global_setting_bool("VIDEO_ANALYTICS_STOP")
+        if stop_tracking:
             EventsAdapter().add_video_service_message("Video analytics stopped.")
-            EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "false")
-            EventsAdapter().update_global_setting("VIDEO_ANALYTICS_STOP", "false")
+            EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "False")
+            EventsAdapter().update_global_setting("VIDEO_ANALYTICS_STOP", "False")
             return True
         return False
 

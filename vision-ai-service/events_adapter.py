@@ -41,7 +41,7 @@ class EventsAdapter:
             logging.error(err_info)
             raise FileNotFoundError(err_info) from e
         except Exception as e:
-            err_info = f"Erorr loading env {param_name}. {e}"
+            err_info = f"Error loading env {param_name}. {e}"
             logging.error(err_info)
             raise Exception(err_info) from e
         return env_param
@@ -60,6 +60,15 @@ class EventsAdapter:
             raise Exception from e
         return global_setting
 
+    def get_global_setting_bool(self, param_name: str) -> bool:
+        """Get global setting boolean from global_settings.json file."""
+        string_value = self.get_global_setting(param_name)
+        boolean_value = False
+        if string_value in ["True", "true", "1"]:
+            boolean_value = True
+
+        return boolean_value
+
     def get_video_service_status_messages(self) -> list:
         """Get video service status."""
         video_status = []
@@ -68,7 +77,7 @@ class EventsAdapter:
             with open(config_file, "r") as json_file:
                 video_status = json.load(json_file)
         except Exception as e:
-            err_info = f"Erorr loading video status. File path {config_file} - {e}"
+            err_info = f"Error getting video status message. File path {config_file} - {e}"
             logging.error(err_info)
             raise Exception(err_info) from e
         return video_status
@@ -96,16 +105,17 @@ class EventsAdapter:
                 json.dump(video_status, json_file)
 
         except Exception as e:
-            err_info = f"Erorr updating video status. File path {config_file} - {e}"
+            err_info = f"Error adding video service message. File path {config_file} - {e}"
             logging.error(err_info)
             raise Exception(err_info) from e
 
     def update_global_setting(self, param_name: str, new_value: str) -> None:
         """Update global_settings file."""
-        config_file = self.get_env("VIDEO_STATUS_FILE")
+        config_file = self.get_env("GLOBAL_SETTINGS_FILE")
         try:
             # Open the global settings file in read-only mode.
             with open(config_file, "r") as json_file:
+                settings = []
                 settings = json.load(json_file)
 
                 # Update the value of the global setting in the dictionary.
@@ -116,7 +126,7 @@ class EventsAdapter:
                 json.dump(settings, json_file)
 
         except Exception as e:
-            err_info = f"Erorr updating global setting {param_name}. File path {config_file} - {e}"
+            err_info = f"Error updating global setting {param_name}. File path {config_file} - {e}"
             logging.error(err_info)
             raise Exception(err_info) from e
 

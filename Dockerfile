@@ -13,6 +13,8 @@ RUN poetry config virtualenvs.create false \
 
 ADD vision-ai-service /app/vision-ai-service
 
-EXPOSE 8080
+RUN apt-get update && apt-get install -y libgl1-mesa-glx
 
-CMD gunicorn  "photo_service_gui:create_app"  --config=vision-ai-service/gunicorn_config.py --worker-class aiohttp.GunicornWebWorker
+# RUN pip install gunicorn
+# CMD gunicorn  "vision-ai-service:create_app"
+CMD python3 vision-ai-service/app.py

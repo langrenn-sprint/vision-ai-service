@@ -25,9 +25,8 @@ Usage: python3 vision-ai-service/app.py
 
 ### Prepare .env filer (dummy parameter values supplied)
 LOGGING_LEVEL=INFO
-PHOTOS_FILE_PATH=/Users/t520834/github/photo-service-gui/docs/photos
-VIDEO_URL=http://localhost:8080/video
-DETECTION_BOX_MINIMUM_SIZE=0.08
+PHOTOS_FILE_PATH=vision-ai-service/files
+VIDEO_URL=https://harnaes.no/maalfoto/2023SkiMaal.mp4
 GLOBAL_SETTINGS_FILE=vision-ai-service/config/global_settings.json
 VIDEO_STATUS_FILE=vision-ai-service/config/video_status.json
 

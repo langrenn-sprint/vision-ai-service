@@ -41,21 +41,21 @@ def main() -> None:
     while True:
         try:
             click.echo("Vision AI is idle...")
-            analytics_running = EventsAdapter().get_global_setting(
+            analytics_running = EventsAdapter().get_global_setting_bool(
                 "VIDEO_ANALYTICS_RUNNING"
             )
-            analytics_start = EventsAdapter().get_global_setting(
+            analytics_start = EventsAdapter().get_global_setting_bool(
                 "VIDEO_ANALYTICS_START"
             )
-            stop_tracking = EventsAdapter().get_global_setting("VIDEO_ANALYTICS_STOP")
-            trigger_line = EventsAdapter().get_global_setting("DRAW_TRIGGER_LINE")
+            stop_tracking = EventsAdapter().get_global_setting_bool("VIDEO_ANALYTICS_STOP")
+            draw_trigger_line = EventsAdapter().get_global_setting_bool("DRAW_TRIGGER_LINE")
 
-            if stop_tracking == "true":
+            if stop_tracking:
                 EventsAdapter().update_global_setting("VIDEO_ANALYTICS_STOP", "false")
-            elif (analytics_running == "false") and (analytics_start == "true"):
+            elif (not analytics_running) and (analytics_start):
                 click.echo("Vision AI video detection is started...")
                 EventsAdapter().add_video_service_message("Starter AI video detection.")
-                EventsAdapter().update_global_setting("VIDEO_ANALYTICS_START", "false")
+                EventsAdapter().update_global_setting("VIDEO_ANALYTICS_START", "False")
                 result = VisionAIService2().detect_crossings_with_ultraltyics(
                     photos_file_path
                 )
@@ -64,17 +64,17 @@ def main() -> None:
                     "Avsluttet AI video detection."
                 )
                 click.echo(f"Video detection complete - {result}")
-            elif (analytics_running == "false") and (trigger_line == "true"):
+            elif (not analytics_running) and (draw_trigger_line):
                 click.echo("Vision trigger line detection is started...")
-                EventsAdapter().update_global_setting("DRAW_TRIGGER_LINE", "false")
+                EventsAdapter().update_global_setting("DRAW_TRIGGER_LINE", "False")
                 result = VisionAIService2().draw_trigger_line_with_ultraltyics(
                     photos_file_path
                 )
                 click.echo(f"Trigger line complete - {result}")
-            elif analytics_running == "true":
+            elif analytics_running:
                 # invalid scenario - reset
                 EventsAdapter().update_global_setting(
-                    "VIDEO_ANALYTICS_RUNNING", "false"
+                    "VIDEO_ANALYTICS_RUNNING", "False"
                 )
             time.sleep(5)
 
