@@ -129,9 +129,10 @@ class VisionAIService2:
 
         EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "false")
 
-        cv2.destroyAllWindows()
+        if show_video:
+            cv2.destroyAllWindows()
         cap.release()
-        return f"Analytics completed. {informasjon}"
+        return f"Analytics completed {informasjon}."
 
     def get_trigger_line_xyxy_list(self) -> list:
         """Get list of trigger line coordinates."""

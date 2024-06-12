@@ -7,6 +7,11 @@ RUN pip install --upgrade pip
 RUN pip install "poetry==1.7.1"
 COPY poetry.lock pyproject.toml /app/
 
+# Docker label
+LABEL org.opencontainers.image.source=https://github.com/langrenn-sprint/vision-ai-service
+LABEL org.opencontainers.image.description="vision-ai-service"
+LABEL org.opencontainers.image.licenses=Apache-2.0
+
 # Project initialization:
 RUN poetry config virtualenvs.create false \
   && poetry install --no-dev --no-interaction --no-ansi
