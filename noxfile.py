@@ -14,6 +14,7 @@ nox.options.sessions = (
     "lint",
     "black",
     "safety",
+    "docker_build",
 )
 
 
@@ -54,6 +55,14 @@ def clean(session: Session) -> None:
         "-f",
         ".coverage",
         external=True,
+    )
+
+
+@session(python=["3.11"])
+def docker_build(session: Session) -> None:
+    """Build the Docker image."""
+    session.run(
+        "docker", "build", "-t", "ghcr.io/langrenn-sprint/vision-ai-service:test", "."
     )
 
 

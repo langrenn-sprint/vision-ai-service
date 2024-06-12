@@ -136,7 +136,7 @@ dmypy.json
 .pytype
 
 # Test files
-*.mp4
 *.pt
 .DS_Store
 Finish_line_config.jpg
+20240113_110011_KJ.mp4
