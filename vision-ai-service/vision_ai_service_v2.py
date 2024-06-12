@@ -6,12 +6,16 @@ import logging
 
 import cv2
 from events_adapter import EventsAdapter
+from exceptions import VideoStreamNotFoundException
 import piexif
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 from torch import tensor
 from ultralytics import YOLO
+
+camera_location = EventsAdapter().get_global_setting("CAMERA_LOCATION")
+show_video = EventsAdapter().get_global_setting_bool("SHOW_VIDEO")
 
 
 class VisionAIService2:
@@ -20,34 +24,50 @@ class VisionAIService2:
     def detect_crossings_with_ultraltyics(
         self,
         photos_file_path: str,
+        video_stream_url: str,
     ) -> str:
         """Analyze video and capture screenshots of line crossings.
 
         Args:
             photos_file_path: The path to the directory where the photos will be saved.
+            video_stream_url: The URL of the video stream or video file.
 
         Returns:
             A string indicating the status of the video analytics.
+
+        Raises:
+            VideoStreamNotFoundException: If the video stream cannot be found.
 
         """
         crossings = {}
         crossings = VisionAIService2().reset_line_crossings(crossings)
         firstDetection = True
-        camera_location = EventsAdapter().get_global_setting("CAMERA_LOCATION")
-        show_video = EventsAdapter().get_global_setting_bool("SHOW_VIDEO")
         informasjon = ""
 
         # Load an official or custom model
         model = YOLO("yolov8n.pt")  # Load an official Detect model
 
         # Perform tracking with the model
-        results = model.track(
-            source=photos_file_path, show=show_video, stream=True, persist=True
-        )
-        # open new stream to capture higher quality image
-        cap = cv2.VideoCapture(photos_file_path)
-        EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "true")
+        try:
+            results = model.track(
+                source=video_stream_url, show=show_video, stream=True, persist=True
+            )
+        except Exception as e:
+            logging.error(f"Error opening video stream from: {video_stream_url}")
+            raise VideoStreamNotFoundException(
+                f"Error opening video stream: {video_stream_url}"
+            ) from e
 
+        # open new stream to capture higher quality image
+        cap = cv2.VideoCapture(video_stream_url)
+        # check if video stream is opened
+        if not cap.isOpened():
+            logging.error(f"Error opening video stream from: {video_stream_url}")
+            raise VideoStreamNotFoundException(
+                f"Error opening video stream: {video_stream_url}"
+            ) from None
+
+        EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "true")
         for result in results:
             # get high res screenshot
             current_time = datetime.datetime.now()
@@ -58,7 +78,7 @@ class VisionAIService2:
             if firstDetection:
                 firstDetection = False
                 VisionAIService2().print_image_with_trigger_line_v2(
-                    img_highres, camera_location, photos_file_path
+                    photos_file_path, video_stream_url
                 )
 
             boxes = result.boxes
@@ -108,6 +128,9 @@ class VisionAIService2:
                 break
 
         EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "false")
+
+        cv2.destroyAllWindows()
+        cap.release()
         return f"Analytics completed. {informasjon}"
 
     def get_trigger_line_xyxy_list(self) -> list:
@@ -181,15 +204,26 @@ class VisionAIService2:
 
     def print_image_with_trigger_line_v2(
         self,
-        im: object,
-        camera_location: str,
         photos_file_path: str,
+        video_stream_url: str,
     ) -> None:
         """Function to print an image with a trigger line."""
         trigger_line_xyxyn = VisionAIService2().get_trigger_line_xyxy_list()
 
+        cap = cv2.VideoCapture(video_stream_url)
+        # check if video stream is opened
+        if not cap.isOpened():
+            logging.error(f"Error opening video stream from: {video_stream_url}")
+            raise VideoStreamNotFoundException(
+                f"Error opening video stream: {video_stream_url}"
+            ) from None
+
         try:
             # Show the results
+            ret_save, img = cap.read()
+            # Convert the frame to RBG
+            img_array = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            im = Image.fromarray(img_array)
             draw = ImageDraw.Draw(im)
 
             # draw a line across the image to illustrate the finish line
@@ -295,20 +329,6 @@ class VisionAIService2:
         time_text = current_time.strftime("%Y%m%d %H:%M:%S")
 
         exif_bytes = VisionAIService2().get_image_info(camera_location, time_text)
-
-        # draw a line across the image to illustrate the finish line
-        trigger_line_xyxyn = VisionAIService2().get_trigger_line_xyxy_list()
-        draw = ImageDraw.Draw(im)
-        draw.line(
-            (
-                trigger_line_xyxyn[0] * im.size[0],
-                trigger_line_xyxyn[1] * im.size[1],
-                trigger_line_xyxyn[2] * im.size[0],
-                trigger_line_xyxyn[3] * im.size[1],
-            ),
-            fill=(255, 0, 0),
-            width=5,
-        )
 
         # save image to file - full size
         timestamp = current_time.strftime("%Y%m%d_%H%M%S")

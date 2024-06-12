@@ -7,11 +7,13 @@ import time
 
 import click
 from events_adapter import EventsAdapter
+from exceptions import VideoStreamNotFoundException
 from vision_ai_service_v2 import VisionAIService2
 
 # get base settings
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 photos_file_path = os.getenv("PHOTOS_FILE_PATH", ".")
+video_stream_url = os.getenv("VIDEO_URL")
 
 # set up logging
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
@@ -61,7 +63,7 @@ def main() -> None:
                 EventsAdapter().add_video_service_message("Starter AI video detection.")
                 EventsAdapter().update_global_setting("VIDEO_ANALYTICS_START", "False")
                 result = VisionAIService2().detect_crossings_with_ultraltyics(
-                    photos_file_path
+                    photos_file_path, video_stream_url
                 )
 
                 EventsAdapter().add_video_service_message(
@@ -71,8 +73,8 @@ def main() -> None:
             elif (not analytics_running) and (draw_trigger_line):
                 click.echo("Vision trigger line detection is started...")
                 EventsAdapter().update_global_setting("DRAW_TRIGGER_LINE", "False")
-                result = VisionAIService2().draw_trigger_line_with_ultraltyics(
-                    photos_file_path
+                result = VisionAIService2().print_image_with_trigger_line_v2(
+                    photos_file_path, video_stream_url
                 )
                 click.echo(f"Trigger line complete - {result}")
             elif analytics_running:
@@ -81,14 +83,28 @@ def main() -> None:
                     "VIDEO_ANALYTICS_RUNNING", "False"
                 )
             time.sleep(5)
-
+        except VideoStreamNotFoundException as e:
+            EventsAdapter().add_video_service_message(f"Video stream not found: {e}")
+            click.echo("Video stream not found!\n")
+            EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "False")
+            EventsAdapter().update_global_setting("VIDEO_ANALYTICS_START", "False")
         except Exception as e:
-            EventsAdapter().add_video_service_message(
-                f"Critical Error - exiting program: {e}"
-            )
             logging.error(f"{e}")
-            click.echo("Critical Error - exiting program!\n")
-            break
+            if "Download" in e:
+                EventsAdapter().add_video_service_message(
+                    f"Video stream not found: {e}"
+                )
+                click.echo("Video stream not found!\n")
+                EventsAdapter().update_global_setting(
+                    "VIDEO_ANALYTICS_RUNNING", "False"
+                )
+                EventsAdapter().update_global_setting("VIDEO_ANALYTICS_START", "False")
+            else:
+                EventsAdapter().add_video_service_message(
+                    f"Critical Error - exiting program: {e}"
+                )
+                click.echo("Critical Error - exiting program!\n")
+                break
 
     click.echo("Bye!\n")
 
