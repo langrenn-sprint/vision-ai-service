@@ -38,3 +38,9 @@ VIDEO_STATUS_FILE=vision-ai-service/config/video_status.json
 ```
 % nox -rs tests
 ```
+
+### Push to docker registry manually (CLI)
+docker-compose build
+docker login ghcr.io -u <github username>
+password: Use a generated access token from GitHub
+docker push ghcr.io/langrenn-sprint/vision-ai-service:latest

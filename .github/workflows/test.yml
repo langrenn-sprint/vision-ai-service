@@ -30,7 +30,3 @@ jobs:
       - name: Build image and test with nox
         run: |-
           nox
-        env:
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
-          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
