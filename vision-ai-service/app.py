@@ -6,11 +6,13 @@ import os
 import time
 
 import click
+from dotenv import load_dotenv
 from events_adapter import EventsAdapter
 from exceptions import VideoStreamNotFoundException
 from vision_ai_service_v2 import VisionAIService2
 
 # get base settings
+load_dotenv()
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 photos_file_path = os.getenv("PHOTOS_FILE_PATH", ".")
 video_stream_url = os.getenv("VIDEO_URL")
