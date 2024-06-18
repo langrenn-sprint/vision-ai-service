@@ -14,8 +14,7 @@ from vision_ai_service_v2 import VisionAIService2
 # get base settings
 load_dotenv()
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
-photos_file_path = os.getenv("PHOTOS_FILE_PATH", ".")
-video_stream_url = os.getenv("VIDEO_URL")
+photos_file_path = "vision-ai-service/files"
 
 # set up logging
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
@@ -64,6 +63,7 @@ def main() -> None:
                 click.echo("Vision AI video detection is started...")
                 EventsAdapter().add_video_service_message("Starter AI video detection.")
                 EventsAdapter().update_global_setting("VIDEO_ANALYTICS_START", "False")
+                video_stream_url = EventsAdapter().get_global_setting("VIDEO_URL")
                 result = VisionAIService2().detect_crossings_with_ultraltyics(
                     photos_file_path, video_stream_url
                 )

@@ -17,6 +17,7 @@
     "VIDEO_ANALYTICS_STOP": "False",
     "DRAW_TRIGGER_LINE": "False",
     "SHOW_VIDEO": "True",
+    "VIDEO_URL": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     "DETECTION_BOX_MINIMUM_SIZE": "0.08",
     "DETECTION_BOX_MAXIMUM_SIZE": "0.9"
 }

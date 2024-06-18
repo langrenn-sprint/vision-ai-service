@@ -3,7 +3,6 @@
 from datetime import datetime
 import json
 import logging
-import os
 from zoneinfo import ZoneInfo
 
 
@@ -12,7 +11,7 @@ class EventsAdapter:
 
     def get_global_setting(self, param_name: str) -> str:
         """Get global settings from global_settings.json file."""
-        config_file = os.getenv("GLOBAL_SETTINGS_FILE")
+        config_file = "vision-ai-service/config/global_settings.json"
         try:
             with open(config_file, "r") as json_file:
                 settings = json.load(json_file)
@@ -36,7 +35,7 @@ class EventsAdapter:
     def get_video_service_status_messages(self) -> list:
         """Get video service status."""
         video_status = []
-        config_file = os.getenv("VIDEO_STATUS_FILE")
+        config_file = "vision-ai-service/files/video_status.json"
         try:
             with open(config_file, "r") as json_file:
                 video_status = json.load(json_file)
@@ -53,7 +52,7 @@ class EventsAdapter:
         current_time = datetime.now()
         time_text = current_time.strftime("%H:%M:%S")
         video_status = []
-        config_file = os.getenv("VIDEO_STATUS_FILE")
+        config_file = "vision-ai-service/files/video_status.json"
         try:
             with open(config_file, "r") as json_file:
                 old_status = json.load(json_file)
@@ -79,7 +78,7 @@ class EventsAdapter:
 
     def update_global_setting(self, param_name: str, new_value: str) -> None:
         """Update global_settings file."""
-        config_file = os.getenv("GLOBAL_SETTINGS_FILE")
+        config_file = "vision-ai-service/config/global_settings.json"
         try:
             # Open the global settings file in read-only mode.
             with open(config_file, "r") as json_file:

@@ -8,19 +8,3 @@ services:
     environment:
       - HOST_PORT=8080
       - LOGGING_LEVEL=${LOGGING_LEVEL}
-      - GLOBAL_SETTINGS_FILE=vision-ai-service/config/global_settings.json
-      - VIDEO_STATUS_FILE=vision-ai-service/config/video_status.json
-      - PHOTOS_FILE_PATH=tests/files
-    volumes:
-      - type: bind
-        source: ${GLOBAL_SETTINGS_FILE}
-        target: /app/${GLOBAL_SETTINGS_FILE}
-      - type: bind
-        source: ${VIDEO_STATUS_FILE}
-        target: /app/${VIDEO_STATUS_FILE}
-      - type: bind
-        source: ${PHOTOS_FILE_PATH}
-        target: /app/${PHOTOS_FILE_PATH}
-      - type: bind
-        source: error.log
-        target: /app/error.log

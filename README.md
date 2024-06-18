@@ -26,9 +26,6 @@ Usage: python3 vision-ai-service/app.py
 ### Prepare .env filer (dummy parameter values supplied)
 LOGGING_LEVEL=INFO
 PHOTOS_FILE_PATH=vision-ai-service/files
-VIDEO_URL=https://harnaes.no/maalfoto/2023SkiMaal.mp4
-GLOBAL_SETTINGS_FILE=vision-ai-service/config/global_settings.json
-VIDEO_STATUS_FILE=vision-ai-service/config/video_status.json
 
 ### Run all sessions
 ```
