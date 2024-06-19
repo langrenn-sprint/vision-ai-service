@@ -16,8 +16,9 @@ from ultralytics import YOLO
 
 camera_location = EventsAdapter().get_global_setting("CAMERA_LOCATION")
 show_video = EventsAdapter().get_global_setting_bool("SHOW_VIDEO")
-trigger_line_config_file = EventsAdapter().get_global_setting("TRIGGER_LINE_CONFIG_FILE")
-
+trigger_line_config_file = EventsAdapter().get_global_setting(
+    "TRIGGER_LINE_CONFIG_FILE"
+)
 
 
 class VisionAIService2:
