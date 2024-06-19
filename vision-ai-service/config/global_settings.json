@@ -11,6 +11,7 @@
     "GOOGLE_PHOTO_SERVER": "https://photoslibrary.googleapis.com/v1",
     "GOOGLE_PHOTO_SCOPE": "https://www.googleapis.com/auth/photoslibrary",
     "TRIGGER_LINE_XYXYN": "0:0.75:1:0.75",
+    "TRIGGER_LINE_CONFIG_FILE": "Trigger_line_config.jpg",
     "CAMERA_LOCATION": "Finish",
     "VIDEO_ANALYTICS_START": "False",
     "VIDEO_ANALYTICS_RUNNING": "false",

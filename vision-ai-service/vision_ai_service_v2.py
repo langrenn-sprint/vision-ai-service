@@ -16,6 +16,8 @@ from ultralytics import YOLO
 
 camera_location = EventsAdapter().get_global_setting("CAMERA_LOCATION")
 show_video = EventsAdapter().get_global_setting_bool("SHOW_VIDEO")
+trigger_line_config_file = EventsAdapter().get_global_setting("TRIGGER_LINE_CONFIG_FILE")
+
 
 
 class VisionAIService2:
@@ -267,7 +269,7 @@ class VisionAIService2:
             draw.text((50, 50), image_time_text, font=font, fill=font_color)
 
             # save image to file - full size
-            im.save(f"{photos_file_path}/{camera_location}_line_config.jpg")
+            im.save(f"{photos_file_path}/{trigger_line_config_file}")
             EventsAdapter().add_video_service_message("Trigger line photo created")
 
         except TypeError as e:
