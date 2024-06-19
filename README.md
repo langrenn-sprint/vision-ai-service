@@ -25,7 +25,6 @@ Usage: python3 vision-ai-service/app.py
 
 ### Prepare .env filer (dummy parameter values supplied)
 LOGGING_LEVEL=INFO
-PHOTOS_FILE_PATH=vision-ai-service/files
 
 ### Run all sessions
 ```
