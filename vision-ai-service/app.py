@@ -14,7 +14,7 @@ from vision_ai_service_v2 import VisionAIService2
 # get base settings
 load_dotenv()
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
-photos_file_path = "vision-ai-service/files"
+photos_file_path = f"{os.getcwd()}/vision-ai-service/files"
 
 # set up logging
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
@@ -37,6 +37,7 @@ logging.getLogger().addHandler(file_handler)
 def main() -> None:
     """CLI for analysing video stream."""  # noqa: D301
     click.echo(f"\nWorking directory {os.getcwd()}")
+    click.echo(f"Photo files directory {photos_file_path}")
     click.echo(f"Logging level {LOGGING_LEVEL}")
     click.echo("Press Control-C to stop.")
     EventsAdapter().add_video_service_message("Vision AI is ready.")
