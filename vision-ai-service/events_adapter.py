@@ -3,7 +3,11 @@
 from datetime import datetime
 import json
 import logging
+import os
 from zoneinfo import ZoneInfo
+
+gs_config_file = f"{os.getcwd()}/vision-ai-service/config/global_settings.json"
+vs_config_file = f"{os.getcwd()}/vision-ai-service/files/video_status.json"
 
 
 class EventsAdapter:
@@ -11,14 +15,13 @@ class EventsAdapter:
 
     def get_global_setting(self, param_name: str) -> str:
         """Get global settings from global_settings.json file."""
-        config_file = "vision-ai-service/config/global_settings.json"
         try:
-            with open(config_file, "r") as json_file:
+            with open(gs_config_file, "r") as json_file:
                 settings = json.load(json_file)
                 global_setting = settings[param_name]
         except Exception as e:
             logging.error(
-                f"Global setting {param_name} not found. File path {config_file} - {e}"
+                f"Global setting {param_name} not found. File path {gs_config_file} - {e}"
             )
             raise Exception from e
         return global_setting
@@ -35,13 +38,12 @@ class EventsAdapter:
     def get_video_service_status_messages(self) -> list:
         """Get video service status."""
         video_status = []
-        config_file = "vision-ai-service/files/video_status.json"
         try:
-            with open(config_file, "r") as json_file:
+            with open(vs_config_file, "r") as json_file:
                 video_status = json.load(json_file)
         except Exception as e:
             err_info = (
-                f"Error getting video status message. File path {config_file} - {e}"
+                f"Error getting video status message. File path {vs_config_file} - {e}"
             )
             logging.error(err_info)
             raise Exception(err_info) from e
@@ -52,9 +54,8 @@ class EventsAdapter:
         current_time = datetime.now()
         time_text = current_time.strftime("%H:%M:%S")
         video_status = []
-        config_file = "vision-ai-service/files/video_status.json"
         try:
-            with open(config_file, "r") as json_file:
+            with open(vs_config_file, "r") as json_file:
                 old_status = json.load(json_file)
 
             i = 0
@@ -66,22 +67,21 @@ class EventsAdapter:
                 i += 1
 
             # Write the updated dictionary to the global settings file in write mode.
-            with open(config_file, "w") as json_file:
+            with open(vs_config_file, "w") as json_file:
                 json.dump(video_status, json_file)
 
         except Exception as e:
             err_info = (
-                f"Error adding video service message. File path {config_file} - {e}"
+                f"Error adding video service message. File path {vs_config_file} - {e}"
             )
             logging.error(err_info)
             raise Exception(err_info) from e
 
     def update_global_setting(self, param_name: str, new_value: str) -> None:
         """Update global_settings file."""
-        config_file = "vision-ai-service/config/global_settings.json"
         try:
             # Open the global settings file in read-only mode.
-            with open(config_file, "r") as json_file:
+            with open(gs_config_file, "r") as json_file:
                 settings = []
                 settings = json.load(json_file)
 
@@ -89,11 +89,11 @@ class EventsAdapter:
                 settings[param_name] = new_value
 
             # Write the updated dictionary to the global settings file in write mode.
-            with open(config_file, "w") as json_file:
+            with open(gs_config_file, "w") as json_file:
                 json.dump(settings, json_file)
 
         except Exception as e:
-            err_info = f"Error updating global setting {param_name}. File path {config_file} - {e}"
+            err_info = f"Error updating global setting {param_name}. File path {gs_config_file} - {e}"
             logging.error(err_info)
             raise Exception(err_info) from e
 
