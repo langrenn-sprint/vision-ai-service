@@ -70,7 +70,7 @@ class VisionAIService2:
                 f"Error opening video stream: {video_stream_url}"
             ) from None
 
-        EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "true")
+        EventsAdapter().update_global_setting("VIDEO_ANALYTICS_RUNNING", "True")
         for result in results:
             # get high res screenshot
             current_time = datetime.datetime.now()
@@ -259,7 +259,8 @@ class VisionAIService2:
             # set the font size and color
             font_size = 50
             font_color = (255, 0, 0)  # red
-            font = ImageFont.truetype("Arial", font_size)
+            font = ImageFont.load_default(size=font_size)
+            # font = ImageFont.truetype("Arix", font_size)
 
             # get the current time
             current_time = datetime.datetime.now()

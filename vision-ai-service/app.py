@@ -93,7 +93,8 @@ def main() -> None:
             EventsAdapter().update_global_setting("VIDEO_ANALYTICS_START", "False")
         except Exception as e:
             logging.error(f"{e}")
-            if "Download" in e:
+            err_string = str(e)
+            if "Download" in err_string:
                 EventsAdapter().add_video_service_message(
                     f"Video stream not found: {e}"
                 )
