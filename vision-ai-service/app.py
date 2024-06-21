@@ -96,7 +96,7 @@ def main() -> None:
             err_string = str(e)
             if "Download" in err_string:
                 EventsAdapter().add_video_service_message(
-                    f"Video stream not found: {e}"
+                    f"Video stream not found: {err_string}"
                 )
                 click.echo("Video stream not found!\n")
                 EventsAdapter().update_global_setting(
@@ -105,7 +105,7 @@ def main() -> None:
                 EventsAdapter().update_global_setting("VIDEO_ANALYTICS_START", "False")
             else:
                 EventsAdapter().add_video_service_message(
-                    f"Critical Error - exiting program: {e}"
+                    f"Critical Error - exiting program: {err_string}"
                 )
                 click.echo("Critical Error - exiting program!\n")
                 break
