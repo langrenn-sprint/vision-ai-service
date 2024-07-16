@@ -137,5 +137,5 @@ dmypy.json
 
 # Test files
 *.pt
-.DS_Store
 *.mp4
+.DS_Store

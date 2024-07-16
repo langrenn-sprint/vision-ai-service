@@ -8,3 +8,73 @@ services:
     environment:
       - HOST_PORT=8080
       - LOGGING_LEVEL=${LOGGING_LEVEL}
+    depends_on:
+      - "event-service"
+      - "photo-service"
+      - "user-service"
+      - "mongodb"
+  event-service:
+    image: ghcr.io/langrenn-sprint/event-service:latest
+    ports:
+      - 8082:8080
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - COMPETITION_FORMAT_HOST_SERVER=competition-format-service
+      - COMPETITION_FORMAT_HOST_PORT=8080
+      - USERS_HOST_SERVER=user-service
+      - USERS_HOST_PORT=8080
+      - LOGGING_LEVEL=${LOGGING_LEVEL}
+      - DB_HOST=mongodb
+      - DB_PORT=27017
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - "user-service"
+      - "mongodb"
+  photo-service:
+    image: ghcr.io/langrenn-sprint/photo-service:latest
+    ports:
+      - 8092:8080
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - USERS_HOST_SERVER=user-service
+      - USERS_HOST_PORT=8080
+      - GOOGLE_PHOTO_SERVER=https://photoslibrary.googleapis.com/v1
+      - GOOGLE_PHOTO_SCOPE=https://www.googleapis.com/auth/photoslibrary.readonly
+      - GOOGLE_PHOTO_CREDENTIALS_FILE=/home/heming/github/photo_api_credentials.json
+      - SERVICEBUS_NAMESPACE_CONNECTION_STR=${SERVICEBUS_NAMESPACE_CONNECTION_STR}
+      - LOGGING_LEVEL=${LOGGING_LEVEL}
+      - DB_HOST=mongodb
+      - DB_PORT=27017
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - "user-service"
+      - "mongodb"
+  user-service:
+    image: ghcr.io/langrenn-sprint/user-service:latest
+    ports:
+      - 8086:8080
+    environment:
+      - JWT_EXP_DELTA_SECONDS=${JWT_EXP_DELTA_SECONDS}
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - LOGGING_LEVEL=${LOGGING_LEVEL}
+      - DB_HOST=mongodb
+      - DB_PORT=27017
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - "mongodb"
+  mongodb:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASSWORD}

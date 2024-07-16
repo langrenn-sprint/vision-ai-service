@@ -6,12 +6,13 @@ import nox
 from nox_poetry import Session, session
 
 package = "vision-ai-service"
-locations = "vision-ai-service", "tests", "noxfile.py"
+locations = "vision_ai_service", "tests", "noxfile.py"
 nox.options.envdir = ".cache"
 nox.options.reuse_existing_virtualenvs = True
 nox.options.stop_on_first_error = True
 nox.options.sessions = (
     "lint",
+    "mypy",
     "black",
     "safety",
     "docker_build",
@@ -36,6 +37,12 @@ def clean(session: Session) -> None:
         "rm",
         "-rf",
         ".pytest_cache",
+        external=True,
+    )
+    session.run(
+        "rm",
+        "-rf",
+        ".pytype",
         external=True,
     )
     session.run(
@@ -112,7 +119,7 @@ def mypy(session: Session) -> None:
     args = session.posargs or [
         "--install-types",
         "--non-interactive",
-        "vision-ai-service",
+        "vision_ai_service",
         "tests",
     ]
     session.install(".")
