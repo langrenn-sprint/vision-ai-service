@@ -42,7 +42,7 @@ async def main() -> None:
         login_success = False
         uid = os.getenv("ADMIN_USERNAME", "")
         pw = os.getenv("ADMIN_PASSWORD", "")
-        while True:
+        while not login_success:
             try:
                 token = await UserAdapter().login(uid, pw)
                 if token:
@@ -50,7 +50,7 @@ async def main() -> None:
                     break
             except Exception as e:
                 logging.error(f"{e}")
-            logging.info(f"Vision AI is waiting for db connection")
+            logging.info("Vision AI is waiting for db connection")
             await asyncio.sleep(5)
 
         event = await get_event(token)
