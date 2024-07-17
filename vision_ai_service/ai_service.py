@@ -23,7 +23,6 @@ class VisionAIService:
         event: dict,
         status_type: str,
         photos_file_path: str,
-        video_stream_url: str,
     ) -> str:
         """Analyze video and capture screenshots of line crossings.
 
@@ -32,7 +31,6 @@ class VisionAIService:
             event: Event details
             status_type: To update status messages
             photos_file_path: The path to the directory where the photos will be saved.
-            video_stream_url: The URL of the video stream or video file.
 
         Returns:
             A string indicating the status of the video analytics.
@@ -48,6 +46,17 @@ class VisionAIService:
             token, event, "CAMERA_LOCATION"
         )
         show_video = await ConfigAdapter().get_config_bool(token, event, "SHOW_VIDEO")
+        video_stream_url = await ConfigAdapter().get_config(token, event, "VIDEO_URL")
+        await StatusAdapter().create_status(
+            token,
+            event,
+            status_type,
+            f"Starter AI video analyse fra {video_stream_url}.",
+        )
+        await ConfigAdapter().update_config(
+            token, event, "VIDEO_ANALYTICS_START", "False"
+        )
+        logging.info(f"Starter AI video analyse fra {video_stream_url}")
 
         # Load an official or custom model
         model = YOLO("yolov8n.pt")  # Load an official Detect model
@@ -84,7 +93,7 @@ class VisionAIService:
             if firstDetection:
                 firstDetection = False
                 await VisionAIService().print_image_with_trigger_line_v2(
-                    token, event, status_type, photos_file_path, video_stream_url
+                    token, event, status_type, photos_file_path
                 )
 
             boxes = result.boxes
@@ -150,6 +159,10 @@ class VisionAIService:
         await ConfigAdapter().update_config(
             token, event, "VIDEO_ANALYTICS_RUNNING", "false"
         )
+        await StatusAdapter().create_status(
+            token, event, status_type, "Avsluttet AI video analyse."
+        )
+        logging.info("Avsluttet AI video analyse.")
 
         if show_video:
             cv2.destroyAllWindows()
@@ -230,12 +243,12 @@ class VisionAIService:
         event: dict,
         status_type: str,
         photos_file_path: str,
-        video_stream_url: str,
     ) -> None:
         """Function to print an image with a trigger line."""
         trigger_line_xyxyn = await VisionAIService().get_trigger_line_xyxy_list(
             token, event
         )
+        video_stream_url = await ConfigAdapter().get_config(token, event, "VIDEO_URL")
 
         cap = cv2.VideoCapture(video_stream_url)
         # check if video stream is opened

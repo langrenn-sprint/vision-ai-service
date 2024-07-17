@@ -11,7 +11,6 @@ from vision_ai_service.adapters import ConfigAdapter
 from vision_ai_service.adapters import EventsAdapter
 from vision_ai_service.adapters import StatusAdapter
 from vision_ai_service.adapters import UserAdapter
-from vision_ai_service.adapters import VideoStreamNotFoundException
 
 # get base settings
 load_dotenv()
@@ -40,9 +39,20 @@ async def main() -> None:
     """CLI for analysing video stream."""  # noqa: D301
     try:
         # login to data-source
+        login_success = False
         uid = os.getenv("ADMIN_USERNAME", "")
         pw = os.getenv("ADMIN_PASSWORD", "")
-        token = await UserAdapter().login(uid, pw)
+        while True:
+            try:
+                token = await UserAdapter().login(uid, pw)
+                if token:
+                    login_success = True
+                    break
+            except Exception as e:
+                logging.error(f"{e}")
+            logging.info(f"Vision AI is waiting for db connection")
+            await asyncio.sleep(5)
+
         event = await get_event(token)
         status_type = await ConfigAdapter().get_config(
             token, event, "VIDEO_ANALYTICS_STATUS_TYPE"
@@ -53,68 +63,36 @@ async def main() -> None:
         logging.info(f"Vision AI is started. Event: {event}")
 
         while True:
-            analytics_running = await ConfigAdapter().get_config_bool(
-                token, event, "VIDEO_ANALYTICS_RUNNING"
-            )
-            analytics_start = await ConfigAdapter().get_config_bool(
-                token, event, "VIDEO_ANALYTICS_START"
-            )
-            stop_tracking = await ConfigAdapter().get_config_bool(
-                token, event, "VIDEO_ANALYTICS_STOP"
-            )
-            draw_trigger_line = await ConfigAdapter().get_config_bool(
-                token, event, "DRAW_TRIGGER_LINE"
-            )
+            ai_config = await get_config(token, event)
             try:
-                if stop_tracking:
+                if ai_config["stop_tracking"]:
                     await ConfigAdapter().update_config(
                         token, event, "VIDEO_ANALYTICS_STOP", "false"
                     )
-                elif (not analytics_running) and (analytics_start):
-                    await StatusAdapter().create_status(
-                        token, event, status_type, "Starter AI video detection."
-                    )
-                    await ConfigAdapter().update_config(
-                        token, event, "VIDEO_ANALYTICS_START", "False"
-                    )
-                    video_stream_url = await ConfigAdapter().get_config(
-                        token, event, "VIDEO_URL"
-                    )
-                    logging.info(f"Starter AI video detection.av {video_stream_url}")
+                elif (not ai_config["analytics_running"]) and (
+                    ai_config["analytics_start"]
+                ):
                     await VisionAIService().detect_crossings_with_ultraltyics(
-                        token, event, status_type, photos_file_path, video_stream_url
+                        token, event, status_type, photos_file_path
                     )
-
-                    await StatusAdapter().create_status(
-                        token, event, status_type, "Avsluttet AI video detection."
-                    )
-                    logging.info("Avsluttet AI video detection.")
-                elif (not analytics_running) and (draw_trigger_line):
+                elif (not ai_config["analytics_running"]) and ai_config[
+                    "draw_trigger_line"
+                ]:
                     await ConfigAdapter().update_config(
                         token, event, "DRAW_TRIGGER_LINE", "False"
                     )
                     await VisionAIService().print_image_with_trigger_line_v2(
-                        token, event, status_type, photos_file_path, video_stream_url
+                        token, event, status_type, photos_file_path
                     )
-                elif analytics_running:
+                elif ai_config["analytics_running"]:
                     # invalid scenario - reset
                     await ConfigAdapter().update_config(
                         token, event, "VIDEO_ANALYTICS_RUNNING", "False"
                     )
-            except VideoStreamNotFoundException as e:
-                await StatusAdapter().create_status(
-                    token, event, status_type, f"Video stream not found: {e}"
-                )
-                await ConfigAdapter().update_config(
-                    token, event, "VIDEO_ANALYTICS_RUNNING", "False"
-                )
-                await ConfigAdapter().update_config(
-                    token, event, "VIDEO_ANALYTICS_START", "False"
-                )
             except Exception as e:
                 logging.error(f"{e}")
                 err_string = str(e)
-                if "Download" in err_string:
+                if ("Download" in err_string) or ("Video" in err_string):
                     await StatusAdapter().create_status(
                         token,
                         event,
@@ -135,6 +113,7 @@ async def main() -> None:
                         f"Critical Error - exiting program: {err_string}",
                     )
                     break
+            logging.info("Vision AI er klar til å starte analyse.")
             await asyncio.sleep(5)
     except Exception as e:
         logging.error(f"{e}")
@@ -164,6 +143,28 @@ async def get_event(token: str) -> dict:
             else:
                 event["id"] = events_db[0]["id"]
     return event
+
+
+async def get_config(token: str, event: dict) -> dict:
+    """Get config details - use info from db."""
+    analytics_running = await ConfigAdapter().get_config_bool(
+        token, event, "VIDEO_ANALYTICS_RUNNING"
+    )
+    analytics_start = await ConfigAdapter().get_config_bool(
+        token, event, "VIDEO_ANALYTICS_START"
+    )
+    stop_tracking = await ConfigAdapter().get_config_bool(
+        token, event, "VIDEO_ANALYTICS_STOP"
+    )
+    draw_trigger_line = await ConfigAdapter().get_config_bool(
+        token, event, "DRAW_TRIGGER_LINE"
+    )
+    return {
+        "analytics_running": analytics_running,
+        "analytics_start": analytics_start,
+        "stop_tracking": stop_tracking,
+        "draw_trigger_line": draw_trigger_line,
+    }
 
 
 if __name__ == "__main__":
