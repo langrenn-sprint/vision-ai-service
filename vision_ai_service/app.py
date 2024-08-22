@@ -6,11 +6,11 @@ from logging.handlers import RotatingFileHandler
 import os
 
 from dotenv import load_dotenv
-from vision_ai_service import VisionAIService
 from vision_ai_service.adapters import ConfigAdapter
 from vision_ai_service.adapters import EventsAdapter
 from vision_ai_service.adapters import StatusAdapter
 from vision_ai_service.adapters import UserAdapter
+from vision_ai_service.services import VisionAIService
 
 # get base settings
 load_dotenv()

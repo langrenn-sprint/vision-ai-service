@@ -109,7 +109,7 @@ def safety(session: Session) -> None:
         "check",
         "--full-report",
         f"--file={requirements}",
-        "--ignore=70612",  # TODO: Should be removed when jinja2 vulnerability is fixed
+        "--ignore=70612,71670",  # TODO: Should be removed when jinja2 vulnerability is fixed
     )
 
 
