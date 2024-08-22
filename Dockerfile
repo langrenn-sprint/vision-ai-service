@@ -5,6 +5,7 @@ WORKDIR /app
 
 RUN pip install --upgrade pip
 RUN pip install "poetry==1.7.1"
+# COPY . /app
 COPY poetry.lock pyproject.toml /app/
 
 # Docker label
@@ -22,4 +23,5 @@ RUN apt-get update && apt-get install -y libgl1-mesa-glx
 
 # RUN pip install gunicorn
 # CMD gunicorn  "vision-ai-service:create_app"
-CMD python3 vision_ai_service/app.py
+CMD ["python", "-m", "vision_ai_service.app"] 
+# CMD python3 vision_ai_service/app.py
