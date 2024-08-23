@@ -14,7 +14,7 @@ from vision_ai_service.adapters import StatusAdapter
 from vision_ai_service.adapters import VideoStreamNotFoundException
 
 
-class VisionAIService:
+class VideoAIService:
     """Class representing video analytics v2 with higher definition photos."""
 
     async def detect_crossings_with_ultraltyics(
@@ -92,7 +92,7 @@ class VisionAIService:
             img_highres = PIL.Image.fromarray(img_array)
             if firstDetection:
                 firstDetection = False
-                await VisionAIService().print_image_with_trigger_line_v2(
+                await VideoAIService().print_image_with_trigger_line_v2(
                     token, event, status_type, photos_file_path
                 )
 
@@ -105,21 +105,21 @@ class VisionAIService:
                         id = int(boxes.id[y].item())
                         # reset the list if counting is reset
                         if id == 1 and len(crossings["100"]) > 1:
-                            crossings = VisionAIService().reset_line_crossings(
+                            crossings = VideoAIService().reset_line_crossings(
                                 crossings
                             )
                         if class_values[y] == 0:  # identify person
                             xyxyn = boxes.xyxyn[y]
                             trigger_line = (
-                                await VisionAIService().get_trigger_line_xyxy_list(
+                                await VideoAIService().get_trigger_line_xyxy_list(
                                     token, event
                                 )
                             )
-                            boxCrossedLine = VisionAIService().is_below_line(
+                            boxCrossedLine = VideoAIService().is_below_line(
                                 xyxyn, trigger_line
                             )
                             # ignore small boxes
-                            boxValidation = await VisionAIService().validate_box(
+                            boxValidation = await VideoAIService().validate_box(
                                 token, event, xyxyn
                             )
 
@@ -134,7 +134,7 @@ class VisionAIService:
                                 else:
                                     if id not in crossings[boxCrossedLine]:
                                         crossings[boxCrossedLine].append(id)  # type: ignore
-                                        await VisionAIService().save_image(
+                                        await VideoAIService().save_image(
                                             token,
                                             event,
                                             status_type,
@@ -149,7 +149,7 @@ class VisionAIService:
                     except TypeError as e:
                         logging.debug(f"TypeError: {e}")
                         pass  # ignore
-            check_stop_tracking = await VisionAIService().check_stop_tracking(
+            check_stop_tracking = await VideoAIService().check_stop_tracking(
                 token, event, status_type
             )
             if check_stop_tracking:
@@ -245,7 +245,7 @@ class VisionAIService:
         photos_file_path: str,
     ) -> None:
         """Function to print an image with a trigger line."""
-        trigger_line_xyxyn = await VisionAIService().get_trigger_line_xyxy_list(
+        trigger_line_xyxyn = await VideoAIService().get_trigger_line_xyxy_list(
             token, event
         )
         video_stream_url = await ConfigAdapter().get_config(token, event, "VIDEO_URL")
@@ -379,7 +379,7 @@ class VisionAIService:
         current_time = datetime.datetime.now()
         time_text = current_time.strftime("%Y%m%d %H:%M:%S")
 
-        exif_bytes = VisionAIService().get_image_info(camera_location, time_text)
+        exif_bytes = VideoAIService().get_image_info(camera_location, time_text)
 
         # save image to file - full size
         timestamp = current_time.strftime("%Y%m%d_%H%M%S")
@@ -396,9 +396,9 @@ class VisionAIService:
         if id in crossings["90"].keys():
             crop_im_list.append(crossings["90"][id])
             crossings["90"].pop(id)
-        crop_im_list.append(VisionAIService().get_crop_image(im, xyxy))
+        crop_im_list.append(VideoAIService().get_crop_image(im, xyxy))
 
-        VisionAIService().save_crop_images(
+        VideoAIService().save_crop_images(
             crop_im_list,
             photos_file_path,
             camera_location,

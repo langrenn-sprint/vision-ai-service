@@ -10,7 +10,7 @@ from vision_ai_service.adapters import ConfigAdapter
 from vision_ai_service.adapters import EventsAdapter
 from vision_ai_service.adapters import StatusAdapter
 from vision_ai_service.adapters import UserAdapter
-from vision_ai_service.services import VisionAIService
+from vision_ai_service.services import VideoAIService
 
 # get base settings
 load_dotenv()
@@ -40,8 +40,8 @@ async def main() -> None:
     try:
         # login to data-source
         login_success = False
-        uid = os.getenv("ADMIN_USERNAME", "")
-        pw = os.getenv("ADMIN_PASSWORD", "")
+        uid = os.getenv("ADMIN_USERNAME", "a")
+        pw = os.getenv("ADMIN_PASSWORD", ".")
         while not login_success:
             try:
                 token = await UserAdapter().login(uid, pw)
@@ -72,7 +72,7 @@ async def main() -> None:
                 elif (not ai_config["analytics_running"]) and (
                     ai_config["analytics_start"]
                 ):
-                    await VisionAIService().detect_crossings_with_ultraltyics(
+                    await VideoAIService().detect_crossings_with_ultraltyics(
                         token, event, status_type, photos_file_path
                     )
                 elif (not ai_config["analytics_running"]) and ai_config[
@@ -81,7 +81,7 @@ async def main() -> None:
                     await ConfigAdapter().update_config(
                         token, event, "DRAW_TRIGGER_LINE", "False"
                     )
-                    await VisionAIService().print_image_with_trigger_line_v2(
+                    await VideoAIService().print_image_with_trigger_line_v2(
                         token, event, status_type, photos_file_path
                     )
                 elif ai_config["analytics_running"]:

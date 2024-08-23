@@ -3,7 +3,7 @@
 Analyserer en videostrøm for passeringer (people crossing line). Tar skjermbilde av passeringen. 
 
 Start service: 
-python3 vision_ai_service/app.py
+python3 -m vision_ai_service.app
 But first, start dependencies (services & db):
 docker-compose up event-service user-service photo-service mongodb
 
