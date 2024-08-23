@@ -105,9 +105,7 @@ class VideoAIService:
                         id = int(boxes.id[y].item())
                         # reset the list if counting is reset
                         if id == 1 and len(crossings["100"]) > 1:
-                            crossings = VideoAIService().reset_line_crossings(
-                                crossings
-                            )
+                            crossings = VideoAIService().reset_line_crossings(crossings)
                         if class_values[y] == 0:  # identify person
                             xyxyn = boxes.xyxyn[y]
                             trigger_line = (
