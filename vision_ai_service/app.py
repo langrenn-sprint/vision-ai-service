@@ -40,6 +40,9 @@ async def main() -> None:
     try:
         # login to data-source
         login_success = False
+        event_found = False
+        event = {}
+        status_type = ""
         uid = os.getenv("ADMIN_USERNAME", "a")
         pw = os.getenv("ADMIN_PASSWORD", ".")
         while not login_success:
@@ -53,13 +56,24 @@ async def main() -> None:
             logging.info("Vision AI is waiting for db connection")
             await asyncio.sleep(5)
 
-        event = await get_event(token)
-        status_type = await ConfigAdapter().get_config(
-            token, event, "VIDEO_ANALYTICS_STATUS_TYPE"
-        )
-        await StatusAdapter().create_status(
-            token, event, status_type, "Vision AI is started."
-        )
+        while not event_found:
+            try:
+                event = await get_event(token)
+                status_type = await ConfigAdapter().get_config(
+                    token, event, "VIDEO_ANALYTICS_STATUS_TYPE"
+                )
+                if event:
+                    event_found = True
+                    information = f"Vision AI is started. {event}"
+                    await StatusAdapter().create_status(
+                        token, event, status_type, information
+                    )
+                    break
+            except Exception as e:
+                logging.error(f"{e}")
+            logging.info("Vision AI is waiting for an event to work on.")
+            await asyncio.sleep(5)
+
         logging.info(f"Vision AI is started. Event: {event}")
 
         while True:
