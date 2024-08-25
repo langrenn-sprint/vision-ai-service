@@ -14,6 +14,16 @@ services:
       - PHOTOS_HOST_PORT=8080
       - USERS_HOST_SERVER=user-service
       - USERS_HOST_PORT=8080
+    volumes:
+      - type: bind
+        source: vision_ai_service/config/global_settings.json
+        target: /app/config/global_settings.json
+      - type: bind
+        source: vision_ai_service/files
+        target: /app/files
+      - type: bind
+        source: error.log
+        target: /app/error.log
     depends_on:
       - "event-service"
       - "photo-service"

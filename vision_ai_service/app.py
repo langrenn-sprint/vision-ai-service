@@ -64,7 +64,7 @@ async def main() -> None:
                 )
                 if event:
                     event_found = True
-                    information = f"Vision AI is started. {event}"
+                    information = f"Vision AI is ready. {event}"
                     await StatusAdapter().create_status(
                         token, event, status_type, information
                     )
@@ -74,7 +74,7 @@ async def main() -> None:
             logging.info("Vision AI is waiting for an event to work on.")
             await asyncio.sleep(5)
 
-        logging.info(f"Vision AI is started. Event: {event}")
+        logging.info(f"Vision AI is ready. Event: {event}")
 
         while True:
             ai_config = await get_config(token, event)
