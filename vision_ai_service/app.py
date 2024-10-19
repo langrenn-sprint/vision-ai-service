@@ -74,8 +74,6 @@ async def main() -> None:
             logging.info("Vision AI is waiting for an event to work on.")
             await asyncio.sleep(5)
 
-        logging.info(f"Vision AI is ready. Event: {event}")
-
         while True:
             ai_config = await get_config(token, event)
             try:
