@@ -296,7 +296,7 @@ class VideoAIService:
 
             # get the current time
             current_time = datetime.datetime.now()
-            time_text = current_time.strftime("%Y%m%d_%H:%M:%S")
+            time_text = current_time.strftime("%Y%m%d_%H%M%S")
             image_time_text = (
                 f"Crossing line coordinates: {trigger_line_xyxyn} - Time: {time_text}"
             )
