@@ -87,6 +87,7 @@ class StatusAdapter:
                 (hdrs.AUTHORIZATION, f"Bearer {token}"),
             ]
         )
+        logging.info(message)
         status_dict = {
             "event_id": event["id"],
             "time": time,

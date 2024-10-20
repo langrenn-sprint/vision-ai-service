@@ -56,7 +56,6 @@ class VideoAIService:
         await ConfigAdapter().update_config(
             token, event, "VIDEO_ANALYTICS_START", "False"
         )
-        logging.info(f"Starter AI video analyse fra {video_stream_url}")
 
         # Load an official or custom model
         model = YOLO("yolov8n.pt")  # Load an official Detect model
@@ -160,7 +159,6 @@ class VideoAIService:
         await StatusAdapter().create_status(
             token, event, status_type, "Avsluttet AI video analyse."
         )
-        logging.info("Avsluttet AI video analyse.")
 
         if show_video:
             cv2.destroyAllWindows()
@@ -298,20 +296,20 @@ class VideoAIService:
 
             # get the current time
             current_time = datetime.datetime.now()
-            time_text = current_time.strftime("%Y%m%d %H:%M:%S")
+            time_text = current_time.strftime("%Y%m%d_%H%M%S")
             image_time_text = (
                 f"Crossing line coordinates: {trigger_line_xyxyn} - Time: {time_text}"
             )
             draw.text((50, 50), image_time_text, font=font, fill=font_color)
 
-            # save image to file - full size
+            # save image to file
             trigger_line_config_file = await ConfigAdapter().get_config(
                 token, event, "TRIGGER_LINE_CONFIG_FILE"
             )
-            im.save(f"{photos_file_path}/{trigger_line_config_file}")
-            await StatusAdapter().create_status(
-                token, event, status_type, "Trigger line photo created"
-            )
+            file_name = f"{photos_file_path}/{time_text}_{trigger_line_config_file}"
+            im.save(file_name)
+            informasjon = f"Trigger line photo created - {file_name}"
+            await StatusAdapter().create_status(token, event, status_type, informasjon)
 
         except TypeError as e:
             logging.debug(f"TypeError: {e}")

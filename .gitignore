@@ -113,6 +113,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.virtualvision
+virtualvision/
 
 # Spyder project settings
 .spyderproject

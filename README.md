@@ -8,8 +8,8 @@ But first, start dependencies (services & db):
 docker-compose up event-service user-service photo-service mongodb
 
 
-## Development
-### Requirements
+## Development Requirements
+
 - [pyenv](https://github.com/pyenv/pyenv-installer)
 - [pipx](https://github.com/pipxproject/pipx)
 - [poetry](https://python-poetry.org/)
@@ -17,10 +17,11 @@ docker-compose up event-service user-service photo-service mongodb
 - [nox-poetry](https://github.com/cjolowicz/nox-poetry)
 - [pillow](https://pypi.org/project/Pillow/)
 
+### If required - virtual environment
+Create: python3.10 -m venv .venv (replace .venv with your preferred name)
+Activate:source .venv/bin/activate
 
 ### Install
-```
-
 % git clone https://github.com/heming-langrenn/vision-ai-service.git
 % cd vision-ai-service
 % pyenv local 3.11
