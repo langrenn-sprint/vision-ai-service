@@ -64,7 +64,9 @@ async def main() -> None:
                 )
                 if event:
                     event_found = True
-                    information = f"Vision AI is ready. {event}"
+                    information = (
+                        f"Vision AI is ready! - {event['name']}, {event['date']}"
+                    )
                     await StatusAdapter().create_status(
                         token, event, status_type, information
                     )
@@ -79,17 +81,13 @@ async def main() -> None:
             try:
                 if ai_config["stop_tracking"]:
                     await ConfigAdapter().update_config(
-                        token, event, "VIDEO_ANALYTICS_STOP", "false"
+                        token, event, "VIDEO_ANALYTICS_STOP", "False"
                     )
-                elif (not ai_config["analytics_running"]) and (
-                    ai_config["analytics_start"]
-                ):
+                elif ai_config["analytics_start"]:
                     await VideoAIService().detect_crossings_with_ultraltyics(
                         token, event, status_type, photos_file_path
                     )
-                elif (not ai_config["analytics_running"]) and ai_config[
-                    "draw_trigger_line"
-                ]:
+                elif ai_config["draw_trigger_line"]:
                     await ConfigAdapter().update_config(
                         token, event, "DRAW_TRIGGER_LINE", "False"
                     )
@@ -97,7 +95,7 @@ async def main() -> None:
                         token, event, status_type, photos_file_path
                     )
                 elif ai_config["analytics_running"]:
-                    # invalid scenario - reset
+                    # should be invalid (no muliti thread) - reset
                     await ConfigAdapter().update_config(
                         token, event, "VIDEO_ANALYTICS_RUNNING", "False"
                     )

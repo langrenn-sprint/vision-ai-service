@@ -302,16 +302,14 @@ class VideoAIService:
             )
             draw.text((50, 50), image_time_text, font=font, fill=font_color)
 
-            # save image to file - full size
+            # save image to file
             trigger_line_config_file = await ConfigAdapter().get_config(
                 token, event, "TRIGGER_LINE_CONFIG_FILE"
             )
             file_name = f"{photos_file_path}/{time_text}_{trigger_line_config_file}"
             im.save(file_name)
             informasjon = f"Trigger line photo created - {file_name}"
-            await StatusAdapter().create_status(
-                token, event, status_type, informasjon
-            )
+            await StatusAdapter().create_status(token, event, status_type, informasjon)
 
         except TypeError as e:
             logging.debug(f"TypeError: {e}")
