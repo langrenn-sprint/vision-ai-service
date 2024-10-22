@@ -19,7 +19,7 @@ nox.options.sessions = (
 )
 
 
-@session(python=["3.11"])
+@session()
 def clean(session: Session) -> None:
     """Clean the project."""
     session.run(
@@ -65,7 +65,7 @@ def clean(session: Session) -> None:
     )
 
 
-@session(python=["3.11"])
+@session()
 def docker_build(session: Session) -> None:
     """Build the Docker image."""
     session.run(
@@ -73,7 +73,7 @@ def docker_build(session: Session) -> None:
     )
 
 
-@session(python=["3.11"])
+@session()
 def black(session: Session) -> None:
     """Run black code formatter."""
     args = session.posargs or locations
@@ -81,7 +81,7 @@ def black(session: Session) -> None:
     session.run("black", *args)
 
 
-@session(python=["3.11"])
+@session()
 def lint(session: Session) -> None:
     """Lint using flake8."""
     args = session.posargs or locations
@@ -99,7 +99,7 @@ def lint(session: Session) -> None:
     session.run("flake8", *args)
 
 
-@session(python=["3.11"])
+@session()
 def safety(session: Session) -> None:
     """Scan dependencies for insecure packages."""
     requirements = session.poetry.export_requirements()
@@ -113,7 +113,7 @@ def safety(session: Session) -> None:
     )
 
 
-@session(python=["3.11"])
+@session()
 def mypy(session: Session) -> None:
     """Type-check using mypy."""
     args = session.posargs or [

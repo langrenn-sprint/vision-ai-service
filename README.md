@@ -18,8 +18,9 @@ docker-compose up event-service user-service photo-service mongodb
 - [pillow](https://pypi.org/project/Pillow/)
 
 ### If required - virtual environment
-Create: python3.10 -m venv .venv (replace .venv with your preferred name)
-Activate:source .venv/bin/activate
+Install: curl https://pyenv.run | bash
+Create: python -m venv .vivenv (replace .venv with your preferred name)
+Activate:source .vivenv/bin/activate
 
 ### Install
 % git clone https://github.com/heming-langrenn/vision-ai-service.git
@@ -56,4 +57,5 @@ USERS_HOST_PORT=8086
 docker-compose build
 docker login ghcr.io -u <github username>
 password: Use a generated access token from GitHub
+docker tag ghcr.io/langrenn-sprint/vision-ai-service:test ghcr.io/langrenn-sprint/vision-ai-service:latest
 docker push ghcr.io/langrenn-sprint/vision-ai-service:latest

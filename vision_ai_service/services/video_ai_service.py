@@ -51,7 +51,7 @@ class VideoAIService:
             token,
             event,
             status_type,
-            f"Starter AI video analyse fra {video_stream_url}.",
+            f"Starter AI analyse av <a href={video_stream_url}>video</a>.",
         )
         await ConfigAdapter().update_config(
             token, event, "VIDEO_ANALYTICS_START", "False"
@@ -308,7 +308,7 @@ class VideoAIService:
             )
             file_name = f"{photos_file_path}/{time_text}_{trigger_line_config_file}"
             im.save(file_name)
-            informasjon = f"Trigger line photo created - {file_name}"
+            informasjon = f"Trigger line <a title={file_name}>photo</a> created."
             await StatusAdapter().create_status(token, event, status_type, informasjon)
 
         except TypeError as e:
@@ -370,7 +370,7 @@ class VideoAIService:
     ) -> None:
         """Save image and crop_images to file."""
         await StatusAdapter().create_status(
-            token, event, status_type, f"Line crossing! ID:{id}"
+            token, event, status_type, f"Line crossing! ID:<a href={photos_file_path}>{id}</a>"
         )
         current_time = datetime.datetime.now()
         time_text = current_time.strftime("%Y%m%d %H:%M:%S")
