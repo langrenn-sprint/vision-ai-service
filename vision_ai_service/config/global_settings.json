@@ -13,6 +13,7 @@
     "TRIGGER_LINE_XYXYN": "0:0.75:1:0.75",
     "TRIGGER_LINE_CONFIG_FILE": "Trigger_line_config.jpg",
     "CAMERA_LOCATION": "Finish",
+    "VIDEO_ANALYTICS_AVAILABLE": "False",
     "VIDEO_ANALYTICS_START": "False",
     "VIDEO_ANALYTICS_RUNNING": "False",
     "VIDEO_ANALYTICS_STOP": "True",

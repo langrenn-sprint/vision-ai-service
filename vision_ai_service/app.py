@@ -76,6 +76,10 @@ async def main() -> None:
             logging.info("Vision AI is waiting for an event to work on.")
             await asyncio.sleep(5)
 
+        # service ready!
+        await ConfigAdapter().update_config(
+            token, event, "VIDEO_ANALYTICS_AVAILABLE", "True"
+        )
         while True:
             ai_config = await get_config(token, event)
             try:
@@ -130,6 +134,9 @@ async def main() -> None:
         await StatusAdapter().create_status(
             token, event, status_type, f"Critical Error - exiting program: {err_string}"
         )
+    await ConfigAdapter().update_config(
+        token, event, "VIDEO_ANALYTICS_AVAILABLE", "False"
+    )
     logging.info("Goodbye!")
 
 
