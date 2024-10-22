@@ -370,7 +370,10 @@ class VideoAIService:
     ) -> None:
         """Save image and crop_images to file."""
         await StatusAdapter().create_status(
-            token, event, status_type, f"Line crossing! ID:<a href={photos_file_path}>{id}</a>"
+            token,
+            event,
+            status_type,
+            f"Line crossing! ID:<a href={photos_file_path}>{id}</a>",
         )
         current_time = datetime.datetime.now()
         time_text = current_time.strftime("%Y%m%d %H:%M:%S")
