@@ -315,16 +315,6 @@ class VideoAIService:
             logging.debug(f"TypeError: {e}")
             pass  # ignore
 
-    def get_image_info(self, camera_location: str, time_text: str) -> bytes:
-        """Create image info EXIF data."""
-        # set the params
-        image_info = {"passeringspunkt": camera_location, "passeringstid": time_text}
-
-        # create the EXIF data and convert to bytes
-        exif_dict = {"0th": {piexif.ImageIFD.ImageDescription: json.dumps(image_info)}}
-        exif_bytes = piexif.dump(exif_dict)
-        return exif_bytes
-
     def get_crop_image(self, im: PIL.Image, xyxy: tensor) -> PIL.Image:  # type: ignore
         """Get cropped image."""
         imCrop = im.crop(  # type: ignore
@@ -429,3 +419,13 @@ class VideoAIService:
         crossings.clear()
         crossings = {"100": [], "90": {}, "80": {}}
         return crossings
+
+    def get_image_info(self, camera_location: str, time_text: str) -> bytes:
+        """Create image info EXIF data."""
+        # set the params
+        image_info = {"passeringspunkt": camera_location, "passeringstid": time_text}
+
+        # create the EXIF data and convert to bytes
+        exif_dict = {"0th": {piexif.ImageIFD.ImageDescription: json.dumps(image_info)}}
+        exif_bytes = piexif.dump(exif_dict)
+        return exif_bytes

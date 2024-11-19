@@ -22,5 +22,8 @@
     "SHOW_VIDEO": "False",
     "VIDEO_URL": "https://harnaes.no/maalfoto/2023SkiMaal.mp4",
     "DETECTION_BOX_MINIMUM_SIZE": "0.08",
-    "DETECTION_BOX_MAXIMUM_SIZE": "0.9"
+    "DETECTION_BOX_MAXIMUM_SIZE": "0.9",
+    "SIMULATION_CROSSINGS_START": "False",
+    "SIMULATION_START_LIST_FILE": "tests/files/startliste.csv",
+    "SIMULATION_FASTEST_TIME": "300"
 }

@@ -86,6 +86,15 @@ class ConfigAdapter:
 
         return boolean_value
 
+    async def get_config_int(self, token: str, event: dict, key: str) -> int:
+        """Get config int value."""
+        string_value = await self.get_config(token, event, key)
+        try:
+            int_value = int(string_value)
+        except ValueError:
+            raise Exception(f"Error - {key} is not a number.") from None
+        return int_value
+
     async def create_config(self, token: str, event: dict, key: str, value: str) -> str:
         """Create new config function."""
         servicename = "create_config"

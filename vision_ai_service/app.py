@@ -11,6 +11,7 @@ from vision_ai_service.adapters import EventsAdapter
 from vision_ai_service.adapters import StatusAdapter
 from vision_ai_service.adapters import UserAdapter
 from vision_ai_service.services import VideoAIService
+from vision_ai_service.services.simulate_service import SimulateService
 
 # get base settings
 load_dotenv()
@@ -83,6 +84,11 @@ async def main() -> None:
         while True:
             ai_config = await get_config(token, event)
             try:
+                # run simulation
+                if ai_config["start_simulation"]:
+                    await SimulateService().simulate_crossings(
+                        token, event, status_type, photos_file_path
+                    )
                 if ai_config["stop_tracking"]:
                     await ConfigAdapter().update_config(
                         token, event, "VIDEO_ANALYTICS_STOP", "False"
@@ -173,12 +179,16 @@ async def get_config(token: str, event: dict) -> dict:
     stop_tracking = await ConfigAdapter().get_config_bool(
         token, event, "VIDEO_ANALYTICS_STOP"
     )
+    start_simulation = await ConfigAdapter().get_config_bool(
+        token, event, "SIMULATION_CROSSINGS_START"
+    )
     draw_trigger_line = await ConfigAdapter().get_config_bool(
         token, event, "DRAW_TRIGGER_LINE"
     )
     return {
         "analytics_running": analytics_running,
         "analytics_start": analytics_start,
+        "start_simulation": start_simulation,
         "stop_tracking": stop_tracking,
         "draw_trigger_line": draw_trigger_line,
     }
