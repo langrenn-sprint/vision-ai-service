@@ -5,6 +5,7 @@ import logging
 import random
 
 from PIL import Image, ImageDraw, ImageFont
+import requests
 from vision_ai_service.adapters.config_adapter import ConfigAdapter
 from vision_ai_service.adapters.status_adapter import StatusAdapter
 from vision_ai_service.services.video_ai_service import VideoAIService
@@ -159,40 +160,67 @@ def get_contestant_list(file_name: str) -> list:
     i_errors = 0
     contestant_list = []
 
-    with open(file_name) as file:
-        for str_oneline in file.readlines():
-            str_oneline = str_oneline.replace("\n", "")
-            try:
-                index_row += 1
-                # split by ; or ,
-                if str_oneline.find(";") == -1:
-                    str_oneline = str_oneline.replace(",", ";")
-                elements = str_oneline.split(";")
-                # identify headers
-                if index_row == 1:
-                    index_column = 0
-                    for element in elements:
-                        # special case to handle random bytes first in file
-                        if index_column == 0 and element.endswith("bib"):
-                            headers["bib"] = 0
-                        headers[element] = index_column
-                        index_column += 1
-                else:
-                    request_body = get_contestant_dict(elements, headers)
-                    contestant_list.append(request_body)
+    input_list = get_input_as_list(file_name)
 
-            except Exception as e:
-                if "401" in str(e):
-                    error_text = f"Ingen tilgang, vennligst logg inn på nytt. {e}"
-                    break
-                i_errors += 1
-                logging.error(f"Error: {e}")
-                error_text += f"<br>{e}"
-            if i_errors > 3:
-                error_text = f"For mange feil i filen - avsluttet import. {error_text}"
-                raise Exception(error_text)
+    for str_oneline in input_list:
+        str_oneline = str_oneline.replace("\n", "")
+        try:
+            index_row += 1
+            # split by ; or ,
+            if str_oneline.find(";") == -1:
+                str_oneline = str_oneline.replace(",", ";")
+            elements = str_oneline.split(";")
+            # identify headers
+            if index_row == 1:
+                index_column = 0
+                for element in elements:
+                    # special case to handle random bytes first in file
+                    if index_column == 0 and element.endswith("bib"):
+                        headers["bib"] = 0
+                    headers[element] = index_column
+                    index_column += 1
+            else:
+                request_body = get_contestant_dict(elements, headers)
+                contestant_list.append(request_body)
+
+        except Exception as e:
+            if "401" in str(e):
+                error_text = f"Ingen tilgang, vennligst logg inn på nytt. {e}"
+                break
+            i_errors += 1
+            logging.error(f"Error: {e}")
+            error_text += f"<br>{e}"
+        if i_errors > 3:
+            error_text = f"For mange feil i filen - avsluttet import. {error_text}"
+            raise Exception(error_text)
 
     return contestant_list
+
+
+def get_input_as_list(file_name: str) -> list:
+    """Retrieve input as a list from a file or url."""
+    input_list = []
+    breakpoint()
+
+    if file_name.startswith("http"):
+        # read from url
+        response = requests.get(file_name)
+        if response.status_code == 200:
+            text_content = response.text
+            # Process the text content (e.g., split into lines, parse it)
+            for line in text_content.splitlines():  # Process line by line
+                input_list.append(line)
+        else:
+            error_text = f"Fant ikke filen på url: {file_name}. {response}"
+            raise Exception(error_text)
+
+    else:
+        with open(file_name) as file:
+            for str_oneline in file.readlines():
+                str_oneline = str_oneline.replace("\n", "")
+                input_list.append(str_oneline)
+
+    return input_list
 
 
 def get_contestant_dict(elements: list, headers: dict) -> dict:
