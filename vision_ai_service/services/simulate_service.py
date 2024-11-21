@@ -93,9 +93,7 @@ class SimulateService:
         im = Image.new("RGB", (800, 600), color="yellow")
         font = ImageFont.load_default(size=25)
         draw = ImageDraw.Draw(im)
-        info_1 = (
-            f"{contestant['name']}, {contestant['club']}"
-        )
+        info_1 = f"{contestant['name']}, {contestant['club']}"
         draw.text((50, 50), info_1, font=font, fill="black")
         info_2 = f"Start: {contestant['start_time']} - passering: {contestant['crossing_time']}"
         draw.text((50, 100), info_2, font=font, fill="black")
@@ -191,9 +189,7 @@ def get_contestant_list(file_name: str) -> list:
                 logging.error(f"Error: {e}")
                 error_text += f"<br>{e}"
             if i_errors > 3:
-                error_text = (
-                    f"For mange feil i filen - avsluttet import. {error_text}"
-                )
+                error_text = f"For mange feil i filen - avsluttet import. {error_text}"
                 raise Exception(error_text)
 
     return contestant_list
