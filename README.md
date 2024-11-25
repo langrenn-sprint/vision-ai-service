@@ -56,7 +56,7 @@ USERS_HOST_PORT=8086
 ### Push to docker registry manually (CLI)
 
 docker-compose build
-docker login ghcr.io -u github username
-password: Use a generated access token from GitHub
+docker login ghcr.io -u github
+password: Use a generated access token from GitHub (https://github.com/settings/tokens/1878556677)
 docker tag ghcr.io/langrenn-sprint/vision-ai-service:test ghcr.io/langrenn-sprint/vision-ai-service:latest
 docker push ghcr.io/langrenn-sprint/vision-ai-service:latest

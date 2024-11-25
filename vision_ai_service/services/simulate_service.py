@@ -200,7 +200,6 @@ def get_contestant_list(file_name: str) -> list:
 def get_input_as_list(file_name: str) -> list:
     """Retrieve input as a list from a file or url."""
     input_list = []
-    breakpoint()
 
     if file_name.startswith("http"):
         # read from url
