@@ -112,7 +112,7 @@ async def main() -> None:
             except Exception as e:
                 logging.error(f"{e}")
                 err_string = str(e)
-                if ("Download" in err_string) or ("Video" in err_string):
+                if ("Download" in err_string) or ("Video" in err_string) or ("video" in err_string):
                     await StatusAdapter().create_status(
                         token,
                         event,
