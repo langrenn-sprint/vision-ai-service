@@ -112,27 +112,18 @@ async def main() -> None:
             except Exception as e:
                 logging.error(f"{e}")
                 err_string = str(e)
-                if ("Download" in err_string) or ("Video" in err_string) or ("video" in err_string):
-                    await StatusAdapter().create_status(
-                        token,
-                        event,
-                        status_type,
-                        f"Video stream not found: {err_string}",
-                    )
-                    await ConfigAdapter().update_config(
-                        token, event, "VIDEO_ANALYTICS_RUNNING", "False"
-                    )
-                    await ConfigAdapter().update_config(
-                        token, event, "VIDEO_ANALYTICS_START", "False"
-                    )
-                else:
-                    await StatusAdapter().create_status(
-                        token,
-                        event,
-                        status_type,
-                        f"Critical Error - exiting program: {err_string}",
-                    )
-                    break
+                await StatusAdapter().create_status(
+                    token,
+                    event,
+                    status_type,
+                    f"Error in Vision AI: {err_string}",
+                )
+                await ConfigAdapter().update_config(
+                    token, event, "VIDEO_ANALYTICS_RUNNING", "False"
+                )
+                await ConfigAdapter().update_config(
+                    token, event, "VIDEO_ANALYTICS_START", "False"
+                )
             logging.info("Vision AI er klar til å starte analyse.")
             await asyncio.sleep(5)
     except Exception as e:
