@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 import requests
 from vision_ai_service.adapters.config_adapter import ConfigAdapter
 from vision_ai_service.adapters.status_adapter import StatusAdapter
-from vision_ai_service.services.video_ai_service import VideoAIService
+from vision_ai_service.adapters.vision_ai_service import VisionAIService
 
 
 class SimulateService:
@@ -88,7 +88,7 @@ class SimulateService:
         """
         current_time = datetime.datetime.now()
         time_text = f"{contestant['crossing_time']}"
-        exif_bytes = VideoAIService().get_image_info(camera_location, time_text)
+        exif_bytes = VisionAIService().get_image_info(camera_location, time_text)
 
         # Write info on image
         im = Image.new("RGB", (800, 600), color="yellow")

@@ -1,19 +1,20 @@
 """Module for video services."""
 
+import ast
 import datetime
 import logging
 
 import cv2
 from torch import Tensor
-from ultralytics import YOLO
+from ultralytics import solutions
 from vision_ai_service.adapters import ConfigAdapter
 from vision_ai_service.adapters import StatusAdapter
 from vision_ai_service.adapters import VideoStreamNotFoundException
 from vision_ai_service.adapters import VisionAIService
 
 
-class VideoAIService:
-    """Class representing video analytics with high definition photos."""
+class VideoAIServiceV2:
+    """Class representing video analytics with ZoneTracking."""
 
     async def detect_crossings_with_ultraltyics(
         self,
@@ -55,18 +56,41 @@ class VideoAIService:
             token, event, "VIDEO_ANALYTICS_START", "False"
         )
 
-        # Load an official or custom model
-        model = YOLO("yolov8n.pt")  # Load an official Detect model
-
         # Perform tracking with the model
         try:
-            results = model.track(
+            cap = cv2.VideoCapture(video_stream_url)
+            w, h = (
+                int(cap.get(x)) for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT)
+            )
+            cap.release()
+
+            # Define region points
+            detection_zone_str = "[(0.4, 0.4), (0.95, 0.95)]"
+            detection_zone = ast.literal_eval(detection_zone_str)
+            zx1, zy1 = detection_zone[0]
+            zx2, zy2 = detection_zone[1]
+            region_points = [
+                (int(zx1 * w), int(zy1 * h)),
+                (int(zx2 * w), int(zy1 * h)),
+                (int(zx2 * w), int(zy2 * h)),
+                (int(zx1 * w), int(zy2 * h))
+            ]
+
+            # Init TrackZone (Object Tracking in Zones, not complete frame)
+            trackzone = solutions.TrackZone(
+                show=show_video,  # Display the output
+                region=region_points,  # Pass region points
+                model="yolo11n.pt"
+            )
+
+            results = trackzone.model.track(
                 source=video_stream_url,
                 show=show_video,
                 classes=[0],  # person
                 stream=True,
                 persist=True
             )
+
         except Exception as e:
             logging.error(f"Error opening video stream from: {video_stream_url}")
             raise VideoStreamNotFoundException(
@@ -76,6 +100,8 @@ class VideoAIService:
         await ConfigAdapter().update_config(
             token, event, "VIDEO_ANALYTICS_RUNNING", "True"
         )
+
+        # Process video
         for result in results:
 
             if firstDetection:
@@ -122,7 +148,7 @@ class VideoAIService:
                                             token,
                                             event,
                                             status_type,
-                                            result,
+                                            result.orig_img,
                                             camera_location,
                                             photos_file_path,
                                             id,
@@ -224,33 +250,40 @@ class VideoAIService:
             ret_save, im = cap.read()
             # Convert the frame to RBG
             im_rgb = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+            h, w = im.shape[:2]
+
+            # Draw the detection zone
+            detection_zone_str = "[(0.3, 0), (0.95, 0.95)]"
+            detection_zone = ast.literal_eval(detection_zone_str)
+            zx1, zy1 = detection_zone[0]
+            zx2, zy2 = detection_zone[1]
+            cv2.line(
+                im_rgb, (int(zx1 * w), int(zy1 * h)), (int(zx2 * w), int(zy1 * h)), (255, 0, 0), 3
+            )
+            cv2.line(
+                im_rgb, (int(zx1 * w), int(zy1 * h)), (int(zx1 * w), int(zy2 * h)), (255, 0, 0), 3
+            )
+            cv2.line(
+                im_rgb, (int(zx2 * w), int(zy1 * h)), (int(zx2 * w), int(zy2 * h)), (255, 0, 0), 3
+            )
+            cv2.line(
+                im_rgb, (int(zx1 * w), int(zy2 * h)), (int(zx2 * w), int(zy2 * h)), (255, 0, 0), 3
+            )
 
             # Draw the trigger line
             x1, y1, x2, y2 = map(float, trigger_line_xyxyn)  # Ensure integer coordinates
             cv2.line(
-                im_rgb,
-                (int(x1 * im.shape[1]), int(y1 * im.shape[0])),
-                (int(x2 * im.shape[1]), int(y2 * im.shape[0])),
-                (255, 0, 0),  # Color (BGR)
-                5
-            )  # Thickness
+                im_rgb, (int(x1 * w), int(y1 * h)), (int(x2 * w), int(y2 * h)), (255, 0, 0), 5
+            )
 
             # Draw the grid lines
             for x in range(10, 100, 10):
                 cv2.line(
-                    im_rgb,
-                    (int(x * im.shape[1] / 100), 0),
-                    (int(x * im.shape[1] / 100), im.shape[0]),
-                    (255, 255, 255),
-                    1
+                    im_rgb, (int(x * w / 100), 0), (int(x * w / 100), h), (255, 255, 255), 1
                 )
             for y in range(10, 100, 10):
                 cv2.line(
-                    im_rgb,
-                    (0, int(y * im.shape[0] / 100)),
-                    (im.shape[1], int(y * im.shape[0] / 100)),
-                    (255, 255, 255),
-                    1
+                    im_rgb, (0, int(y * h / 100)), (w, int(y * h / 100)), (255, 255, 255), 1
                 )
 
             # Add text (using OpenCV)
@@ -260,9 +293,8 @@ class VideoAIService:
 
             # get the current time
             current_time = datetime.datetime.now()
-            time_text = current_time.strftime("%Y%m%d_%H%M%S")
             image_time_text = (
-                f"Crossing line coordinates: {trigger_line_xyxyn} - Time: {time_text}"
+                f"Crossing line & detection zone. Time: {current_time.strftime("%H:%M:%S")}"
             )
             cv2.putText(im_rgb, image_time_text, (50, 50), font_face, font_scale, font_color, 2, cv2.LINE_AA)
 
@@ -270,6 +302,7 @@ class VideoAIService:
             trigger_line_config_file = await ConfigAdapter().get_config(
                 token, event, "TRIGGER_LINE_CONFIG_FILE"
             )
+            time_text = current_time.strftime("%Y%m%d_%H%M%S")
             file_name = f"{photos_file_path}/{time_text}_{trigger_line_config_file}"
             cv2.imwrite(file_name, cv2.cvtColor(im_rgb, cv2.COLOR_RGB2BGR))  # Convert back to BGR for saving
             informasjon = f"Trigger line <a title={file_name}>photo</a> created."
