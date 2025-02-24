@@ -255,14 +255,14 @@ class VideoAIService:
 
             # Add text (using OpenCV)
             font_face = 1
-            font_scale = 2
+            font_scale = 1
             font_color = (255, 0, 0)  # red
 
             # get the current time
             current_time = datetime.datetime.now()
             time_text = current_time.strftime("%Y%m%d_%H%M%S")
             image_time_text = (
-                f"Crossing line coordinates: {trigger_line_xyxyn} - Time: {time_text}"
+                f"Line coordinates: {trigger_line_xyxyn}. Time: {time_text}"
             )
             cv2.putText(im_rgb, image_time_text, (50, 50), font_face, font_scale, font_color, 2, cv2.LINE_AA)
 
