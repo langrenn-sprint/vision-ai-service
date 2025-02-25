@@ -33,12 +33,8 @@ Activate:source .vienv/bin/activate
 ### Prepare .env filer (dummy parameter values supplied)
 
 LOGGING_LEVEL=INFO
-JWT_SECRET=secret
-JWT_EXP_DELTA_SECONDS=3600
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=password
-DB_USER=admin
-DB_PASSWORD=password
 EVENTS_HOST_SERVER=localhost
 EVENTS_HOST_PORT=8082
 PHOTOS_HOST_SERVER=localhost
