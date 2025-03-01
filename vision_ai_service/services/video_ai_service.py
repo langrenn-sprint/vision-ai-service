@@ -58,14 +58,21 @@ class VideoAIService:
         # Load an official or custom model
         model = YOLO("yolov8n.pt")  # Load an official Detect model
 
+        # Define the desired image size as a tuple (width, height)
+        # image_size = (1920, 1088)  # You can set this to the desired resolution
+        image_size = (1600, 896)  # You can set this to the desired resolution
+        # image_size = (1280, 736)  # You can set this to the desired resolution
+
         # Perform tracking with the model
         try:
             results = model.track(
                 source=video_stream_url,
                 show=show_video,
+                conf=0.5,
                 classes=[0],  # person
                 stream=True,
-                persist=True
+                persist=True,
+                imgsz=image_size
             )
         except Exception as e:
             logging.error(f"Error opening video stream from: {video_stream_url}")
