@@ -11,6 +11,9 @@ from vision_ai_service.adapters import StatusAdapter
 from vision_ai_service.adapters import VideoStreamNotFoundException
 from vision_ai_service.adapters import VisionAIService
 
+DETECTION_BOX_MINIMUM_SIZE = 0.08
+DETECTION_BOX_MAXIMUM_SIZE = 0.9
+
 
 class VideoAIService:
     """Class representing video analytics with high definition photos."""
@@ -59,9 +62,9 @@ class VideoAIService:
         model = YOLO("yolov8n.pt")  # Load an official Detect model
 
         # Define the desired image size as a tuple (width, height)
-        # image_size = (1920, 1088)  # You can set this to the desired resolution
-        image_size = (1600, 896)  # You can set this to the desired resolution
-        # image_size = (1280, 736)  # You can set this to the desired resolution
+        image_size = await ConfigAdapter().get_config_img_res_tuple(
+            token, event, "VIDEO_ANALYTICS_IMAGE_SIZE"
+        )
 
         # Perform tracking with the model
         try:
@@ -71,8 +74,8 @@ class VideoAIService:
                 conf=0.5,
                 classes=[0],  # person
                 stream=True,
-                persist=True,
-                imgsz=image_size
+                imgsz=image_size,
+                persist=True
             )
         except Exception as e:
             logging.error(f"Error opening video stream from: {video_stream_url}")
@@ -126,9 +129,6 @@ class VideoAIService:
                                     if id not in crossings[boxCrossedLine]:
                                         crossings[boxCrossedLine].append(id)  # type: ignore
                                         await VisionAIService().save_image(
-                                            token,
-                                            event,
-                                            status_type,
                                             result,
                                             camera_location,
                                             photos_file_path,
@@ -161,22 +161,15 @@ class VideoAIService:
     async def validate_box(self, token: str, event: dict, xyxyn: Tensor) -> bool:  # type: ignore
         """Function to filter out boxes not relevant."""
         boxValidation = True
-        box_min_size = float(
-            await ConfigAdapter().get_config(token, event, "DETECTION_BOX_MINIMUM_SIZE")
-        )
         box_with = xyxyn.tolist()[2] - xyxyn.tolist()[0]  # type: ignore
         box_heigth = xyxyn.tolist()[3] - xyxyn.tolist()[1]  # type: ignore
 
         # check if box is too small and at the edge
-        if (box_with < box_min_size) or (box_heigth < box_min_size):
+        if (box_with < DETECTION_BOX_MINIMUM_SIZE) or (box_heigth < DETECTION_BOX_MINIMUM_SIZE):
             if (xyxyn.tolist()[2] > 0.98) or (xyxyn.tolist()[3] > 0.98):  # type: ignore
                 return False
 
-        # check if box is too big
-        box_max_size = float(
-            await ConfigAdapter().get_config(token, event, "DETECTION_BOX_MAXIMUM_SIZE")
-        )
-        if (box_with > box_max_size) or (box_heigth > box_max_size):
+        if (box_with > DETECTION_BOX_MAXIMUM_SIZE) or (box_heigth > DETECTION_BOX_MAXIMUM_SIZE):
             return False
 
         return boxValidation

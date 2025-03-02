@@ -25,9 +25,7 @@ class VisionAIService:
     def save_crop_images(
         self,
         image_list: list[numpy.ndarray],
-        photos_file_path: str,
-        camera_location: str,
-        id: int,
+        file_name: str,
     ) -> None:
         """Saves all crop images in one image file."""
         # OpenCV uses NumPy arrays, so concatenate horizontally
@@ -50,10 +48,8 @@ class VisionAIService:
             padded_images.append(padded_img)
 
         combined_image = numpy.concatenate(padded_images, axis=1)
-        current_time = datetime.datetime.now()
-        timestamp = current_time.strftime("%Y%m%d_%H%M%S")
-        file_name = f"{photos_file_path}/{camera_location}_{timestamp}_{id}_crop.jpg"
-        cv2.imwrite(file_name, combined_image)
+        crop_file_name = f"{file_name}_crop.jpg"
+        cv2.imwrite(crop_file_name, combined_image)
 
     async def check_stop_tracking(
         self, token: str, event: dict, status_type: str
@@ -107,9 +103,6 @@ class VisionAIService:
 
     async def save_image(
         self,
-        token: str,
-        event: dict,
-        status_type: str,
         result: Results,
         camera_location: str,
         photos_file_path: str,
@@ -118,19 +111,14 @@ class VisionAIService:
         xyxy: Tensor,
     ) -> None:
         """Save image and crop_images to file."""
-        await StatusAdapter().create_status(
-            token,
-            event,
-            status_type,
-            f"Line crossing! ID:<a href={photos_file_path}>{id}</a>",
-        )
+        logging.info(f"Line crossing! ID:{id} {photos_file_path}")
         current_time = datetime.datetime.now()
         time_text = current_time.strftime("%Y%m%d %H:%M:%S")
 
         # save image to file - full size
         timestamp = current_time.strftime("%Y%m%d_%H%M%S")
-        file_name = f"{photos_file_path}/{camera_location}_{timestamp}_{id}.jpg"
-        cv2.imwrite(file_name, result.orig_img)
+        file_name = f"{photos_file_path}/{camera_location}_{timestamp}_{id}"
+        cv2.imwrite(f"{file_name}.jpg", result.orig_img)
 
         # Now insert the EXIF data using piexif
         try:
@@ -152,7 +140,5 @@ class VisionAIService:
 
         VisionAIService().save_crop_images(
             crop_im_list,
-            photos_file_path,
-            camera_location,
-            id,
+            file_name,
         )

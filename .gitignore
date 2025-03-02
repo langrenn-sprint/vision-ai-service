@@ -141,3 +141,5 @@ dmypy.json
 *.pt
 *.mp4
 .DS_Store
+Finish_202*
+*Trigger_line*
