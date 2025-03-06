@@ -5,29 +5,31 @@ import json
 import logging
 
 import cv2
-import numpy
+import numpy as np
 import piexif
 from torch import Tensor
 from ultralytics.engine.results import Results
+
 from vision_ai_service.adapters.config_adapter import ConfigAdapter
 from vision_ai_service.adapters.status_adapter import StatusAdapter
+
+COUNT_COORDINATES = 4
 
 
 class VisionAIService:
     """Class representing vision ai services."""
 
-    def get_crop_image(self, im: numpy.ndarray, xyxy: Tensor) -> numpy.ndarray:
+    def get_crop_image(self, im: np.ndarray, xyxy: Tensor) -> np.ndarray:
         """Get cropped image."""
         x1, y1, x2, y2 = map(int, xyxy.tolist())  # Ensure integer coordinates
-        imCrop = im[y1:y2, x1:x2]  # Cropping in OpenCV (NumPy array slicing)
-        return imCrop
+        return im[y1:y2, x1:x2]  # Cropping in OpenCV (NumPy array slicing)
 
     def save_crop_images(
         self,
-        image_list: list[numpy.ndarray],
+        image_list: list[np.ndarray],
         file_name: str,
     ) -> None:
-        """Saves all crop images in one image file."""
+        """Save all crop images in one image file."""
         # OpenCV uses NumPy arrays, so concatenate horizontally
         max_height = max(img.shape[0] for img in image_list)
         padded_images = []
@@ -47,7 +49,7 @@ class VisionAIService:
             )
             padded_images.append(padded_img)
 
-        combined_image = numpy.concatenate(padded_images, axis=1)
+        combined_image = np.concatenate(padded_images, axis=1)
         crop_file_name = f"{file_name}_crop.jpg"
         cv2.imwrite(crop_file_name, combined_image)
 
@@ -78,8 +80,7 @@ class VisionAIService:
 
         # create the EXIF data and convert to bytes
         exif_dict = {"0th": {piexif.ImageIFD.ImageDescription: json.dumps(image_info)}}
-        exif_bytes = piexif.dump(exif_dict)
-        return exif_bytes
+        return piexif.dump(exif_dict)
 
     async def get_trigger_line_xyxy_list(self, token: str, event: dict) -> list:
         """Get list of trigger line coordinates."""
@@ -91,33 +92,34 @@ class VisionAIService:
         try:
             trigger_line_xyxy_list = [float(i) for i in trigger_line_xyxy.split(":")]
         except Exception as e:
-            logging.error(f"Error reading TRIGGER_LINE_XYXYN: {e}")
-            raise e
+            informasjon  = f"Error reading TRIGGER_LINE_XYXYN: {e}"
+            logging.exception(informasjon)
+            raise Exception(informasjon) from e
 
         # validate for correct number of coordinates
-        if len(trigger_line_xyxy_list) != 4:
+        if len(trigger_line_xyxy_list) != COUNT_COORDINATES:
             informasjon = "TRIGGER_LINE_XYXYN must have 4 numbers, colon-separated."
-            logging.error(f"{informasjon} {trigger_line_xyxy}")
-            raise Exception(f"{informasjon} {trigger_line_xyxy}")
+            logging.error(informasjon)
+            raise Exception(informasjon)
         return trigger_line_xyxy_list
 
-    async def save_image(
+    def save_image(
         self,
         result: Results,
         camera_location: str,
         photos_file_path: str,
-        id: int,
+        d_id: int,
         crossings: dict,
         xyxy: Tensor,
     ) -> None:
         """Save image and crop_images to file."""
-        logging.info(f"Line crossing! ID:{id} {photos_file_path}")
-        current_time = datetime.datetime.now()
+        logging.info(f"Line crossing! ID:{d_id} {photos_file_path}")
+        current_time = datetime.datetime.now(datetime.UTC)
         time_text = current_time.strftime("%Y%m%d %H:%M:%S")
 
         # save image to file - full size
         timestamp = current_time.strftime("%Y%m%d_%H%M%S")
-        file_name = f"{photos_file_path}/{camera_location}_{timestamp}_{id}"
+        file_name = f"{photos_file_path}/{camera_location}_{timestamp}_{d_id}"
         cv2.imwrite(f"{file_name}.jpg", result.orig_img)
 
         # Now insert the EXIF data using piexif
@@ -125,16 +127,17 @@ class VisionAIService:
             exif_bytes = VisionAIService().get_image_info(camera_location, time_text)
             piexif.insert(exif_bytes, file_name)
         except Exception as e:
-            logging.error(f"vision_ai_service - Error inserting EXIF: {e}")
+            informasjon = f"vision_ai_service - Error inserting EXIF: {e}"
+            logging.exception(informasjon)
 
         # save crop images
         crop_im_list = []
-        if id in crossings["80"].keys():
-            crop_im_list.append(crossings["80"][id])
-            crossings["80"].pop(id)
-        if id in crossings["90"].keys():
-            crop_im_list.append(crossings["90"][id])
-            crossings["90"].pop(id)
+        if d_id in crossings["80"]:
+            crop_im_list.append(crossings["80"][d_id])
+            crossings["80"].pop(d_id)
+        if d_id in crossings["90"]:
+            crop_im_list.append(crossings["90"][d_id])
+            crossings["90"].pop(d_id)
         # add crop of saved image (100)
         crop_im_list.append(VisionAIService().get_crop_image(result.orig_img, xyxy))
 

@@ -2,7 +2,7 @@
 
 from .config_adapter import ConfigAdapter
 from .events_adapter import EventsAdapter
-from .exceptions import VideoStreamNotFoundException
+from .exceptions import VideoStreamNotFoundError
 from .status_adapter import StatusAdapter
 from .user_adapter import UserAdapter
 from .vision_ai_service import VisionAIService

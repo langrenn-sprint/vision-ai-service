@@ -1,27 +1,26 @@
-FROM python:3.11
+FROM python:3.12
 
-RUN mkdir -p /app
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+# Install uv.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Copy the application into the container.
+ADD . /app
+
+# Install the application dependencies.
 WORKDIR /app
+RUN uv sync --frozen
 
-RUN pip install --upgrade pip
-RUN pip install "poetry==1.7.1"
-# COPY . /app
-COPY poetry.lock pyproject.toml /app/
+# Expose the application port.
+EXPOSE 8080
 
 # Docker label
 LABEL org.opencontainers.image.source=https://github.com/langrenn-sprint/vision-ai-service
 LABEL org.opencontainers.image.description="vision-ai-service"
 LABEL org.opencontainers.image.licenses=Apache-2.0
 
-# Project initialization:
-RUN poetry config virtualenvs.create false \
-  && poetry install --no-dev --no-interaction --no-ansi
-
-ADD vision_ai_service /app/vision_ai_service
-
-RUN apt-get update && apt-get install -y libgl1-mesa-glx
-
-# RUN pip install gunicorn
-# CMD gunicorn  "vision-ai-service:create_app"
+# Run the application.
 CMD ["python", "-m", "vision_ai_service.app"] 
 # CMD python3 vision_ai_service/app.py

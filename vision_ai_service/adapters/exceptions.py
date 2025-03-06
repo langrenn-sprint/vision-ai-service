@@ -1,7 +1,7 @@
 """Module for service exceptions."""
 
 
-class VideoStreamNotFoundException(Exception):
+class VideoStreamNotFoundError(Exception):
     """Class representing custom exception."""
 
     def __init__(self, message: str) -> None:

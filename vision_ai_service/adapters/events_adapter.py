@@ -1,13 +1,12 @@
 """Module for events adapter."""
 
-from datetime import datetime
 import logging
 import os
-from typing import List
+from datetime import datetime
+from http import HTTPStatus
 from zoneinfo import ZoneInfo
 
-from aiohttp import ClientSession
-from aiohttp import hdrs
+from aiohttp import ClientSession, hdrs
 from dotenv import load_dotenv
 from multidict import MultiDict
 
@@ -21,7 +20,7 @@ EVENT_SERVICE_URL = f"http://{EVENTS_HOST_SERVER}:{EVENTS_HOST_PORT}"
 class EventsAdapter:
     """Class representing events."""
 
-    async def get_all_events(self, token: str) -> List:
+    async def get_all_events(self, token: str) -> list:
         """Get all events function."""
         events = []
         headers = MultiDict(
@@ -31,41 +30,34 @@ class EventsAdapter:
             ]
         )
 
-        async with ClientSession() as session:
-            async with session.get(
+        async with ClientSession() as session, session.get(
                 f"{EVENT_SERVICE_URL}/events", headers=headers
             ) as resp:
                 logging.debug(f"get_all_events - got response {resp.status}")
-                if resp.status == 200:
+                if resp.status == HTTPStatus.OK:
                     events = await resp.json()
                     logging.debug(f"events - got response {events}")
-                elif resp.status == 401:
-                    raise Exception(f"Login expired: {resp}")
+                elif resp.status == HTTPStatus.UNAUTHORIZED:
+                    informasjon = f"Login expired: {resp}"
+                    raise Exception(informasjon)
                 else:
-                    logging.error(f"Error {resp.status} getting events: {resp} ")
+                    informasjon = f"Error {resp.status} getting events: {resp} "
+                    logging.error(informasjon)
         return events
 
     def get_local_datetime_now(self, event: dict) -> datetime:
         """Return local datetime object, time zone adjusted from event info."""
         timezone = event["timezone"]
-        if timezone:
-            local_time_obj = datetime.now(ZoneInfo(timezone))
-        else:
-            local_time_obj = datetime.now()
-        return local_time_obj
+        return datetime.now(ZoneInfo(timezone)) if timezone else datetime.now(timezone.utc)
 
-    def get_local_time(self, event: dict, format: str) -> str:
+    def get_local_time(self, event: dict, time_format: str) -> str:
         """Return local time string, time zone adjusted from event info."""
         local_time = ""
         timezone = event["timezone"]
-        if timezone:
-            t_n = datetime.now(ZoneInfo(timezone))
-        else:
-            t_n = datetime.now()
-
-        if format == "HH:MM":
+        t_n = datetime.now(ZoneInfo(timezone)) if timezone else datetime.now(timezone.utc)
+        if time_format == "HH:MM":
             local_time = f"{t_n.strftime('%H')}:{t_n.strftime('%M')}"
-        elif format == "log":
+        elif time_format == "log":
             local_day = (
                 f"{t_n.strftime('%Y')}-{t_n.strftime('%m')}-{t_n.strftime('%d')}"
             )

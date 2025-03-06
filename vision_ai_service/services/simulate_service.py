@@ -3,12 +3,17 @@
 import datetime
 import logging
 import random
+from http import HTTPStatus
+from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
 import requests
+from PIL import Image, ImageDraw, ImageFont
+
 from vision_ai_service.adapters.config_adapter import ConfigAdapter
 from vision_ai_service.adapters.status_adapter import StatusAdapter
 from vision_ai_service.adapters.vision_ai_service import VisionAIService
+
+MAX_ERROR_COUNT = 3
 
 
 class SimulateService:
@@ -21,7 +26,7 @@ class SimulateService:
         status_type: str,
         photos_file_path: str,
     ) -> str:
-        """Simulates line crossings for contestants from an input file.
+        """Simulate line crossings for contestants from an input file.
 
         Args:
             token: To update databes
@@ -31,6 +36,7 @@ class SimulateService:
 
         Returns:
             Information about the simulation process.
+
         """
         informasjon = ""
         input_file = await ConfigAdapter().get_config(
@@ -56,7 +62,7 @@ class SimulateService:
                 status_type,
                 err_message,
             )
-            logging.error(err_message)
+            logging.exception(err_message)
             return err_message
 
         for contestant in contestants:
@@ -79,14 +85,15 @@ class SimulateService:
         photos_file_path: str,
         contestant: dict,
     ) -> None:
-        """Generates and saves a simulated image for a contestant.
+        """Generate and save a simulated image for a contestant.
 
         Args:
             camera_location: The name of the camera location.
             photos_file_path: The path to the directory where the image will be saved.
             contestant: A dictionary containing contestant information.
+
         """
-        current_time = datetime.datetime.now()
+        current_time = datetime.datetime.now(datetime.UTC)
         time_text = f"{contestant['crossing_time']}"
         exif_bytes = VisionAIService().get_image_info(camera_location, time_text)
 
@@ -105,7 +112,7 @@ class SimulateService:
 
         # save image to file - full size
         timestamp = current_time.strftime("%Y%m%d_%H%M%S")
-        im.save(  # type: ignore
+        im.save(
             f"{photos_file_path}/{camera_location}_{timestamp}_{contestant['bib']}.jpg",
             exif=exif_bytes,
         )
@@ -114,14 +121,14 @@ class SimulateService:
         im_c = Image.new("RGB", (400, 300), color="yellow")
         draw_c = ImageDraw.Draw(im_c)
         draw_c.text((150, 100), str(contestant["bib"]), font=font, fill="black")
-        im_c.save(  # type: ignore
+        im_c.save(
             f"{photos_file_path}/{camera_location}_{timestamp}_{contestant['bib']}_crop.jpg",
             exif=exif_bytes,
         )
 
 
 def add_random_crossing_time(contestants: list, fastest_time: int) -> list:
-    """Adds a random crossing time to each contestant's data.
+    """Add a random crossing time to each contestant's data.
 
     Args:
         contestants: (list) A list of contestant dictionaries.
@@ -129,21 +136,20 @@ def add_random_crossing_time(contestants: list, fastest_time: int) -> list:
 
     Returns:
         A list of contestant dictionaries with added crossing times.
+
     """
-    i = 0
     contestants_with_crossing_time = []
     random.shuffle(contestants)
-    for contestant in contestants:
+    for i, contestant in enumerate(contestants):
         contestant["crossing_time"] = add_seconds_to_time(
             contestant["start_time"], fastest_time + i
         )
         contestants_with_crossing_time.append(contestant)
-        i += 1
     return contestants_with_crossing_time
 
 
 def get_contestant_list(file_name: str) -> list:
-    """Loads contestant data from a CSV file.
+    """Load contestant data from a CSV file.
 
     Args:
         file_name: The path to the CSV file.
@@ -153,6 +159,7 @@ def get_contestant_list(file_name: str) -> list:
 
     Raises:
         Exception: If there are errors opening or parsing the file.
+
     """
     error_text = ""
     index_row = 0
@@ -162,35 +169,36 @@ def get_contestant_list(file_name: str) -> list:
 
     input_list = get_input_as_list(file_name)
 
-    for str_oneline in input_list:
-        str_oneline = str_oneline.replace("\n", "")
+    for raw_line in input_list:
+        str_oneline = raw_line.replace("\n", "")
         try:
             index_row += 1
             # split by ; or ,
             if str_oneline.find(";") == -1:
-                str_oneline = str_oneline.replace(",", ";")
-            elements = str_oneline.split(";")
+                clean_line = str_oneline.replace(",", ";")
+                elements = clean_line.split(";")
+            else:
+                elements = str_oneline.split(";")
             # identify headers
             if index_row == 1:
-                index_column = 0
-                for element in elements:
+                for index_column, element in enumerate(elements):
                     # special case to handle random bytes first in file
                     if index_column == 0 and element.endswith("bib"):
                         headers["bib"] = 0
                     headers[element] = index_column
-                    index_column += 1
             else:
                 request_body = get_contestant_dict(elements, headers)
                 contestant_list.append(request_body)
 
         except Exception as e:
             if "401" in str(e):
-                error_text = f"Ingen tilgang, vennligst logg inn på nytt. {e}"
+                error_text = f"401 Ingen tilgang, vennligst logg inn på nytt. {e}"
                 break
             i_errors += 1
-            logging.error(f"Error: {e}")
+            error_text = f"Feil i linje {index_row}: {str_oneline}. {e}"
+            logging.exception(error_text)
             error_text += f"<br>{e}"
-        if i_errors > 3:
+        if i_errors > MAX_ERROR_COUNT:
             error_text = f"For mange feil i filen - avsluttet import. {error_text}"
             raise Exception(error_text)
 
@@ -203,27 +211,25 @@ def get_input_as_list(file_name: str) -> list:
 
     if file_name.startswith("http"):
         # read from url
-        response = requests.get(file_name)
-        if response.status_code == 200:
+        response = requests.get(file_name, timeout=10)
+        if response.status_code == HTTPStatus.OK:
             text_content = response.text
-            # Process the text content (e.g., split into lines, parse it)
-            for line in text_content.splitlines():  # Process line by line
-                input_list.append(line)
+            # Directly create the list from split lines
+            input_list = text_content.splitlines()
         else:
             error_text = f"Fant ikke filen på url: {file_name}. {response}"
             raise Exception(error_text)
-
     else:
-        with open(file_name) as file:
-            for str_oneline in file.readlines():
-                str_oneline = str_oneline.replace("\n", "")
-                input_list.append(str_oneline)
-
+        file_path = Path(file_name)
+        with file_path.open() as file:
+            for line in file:
+                cleaned_line = line.replace("\n", "")
+                input_list.append(cleaned_line)
     return input_list
 
 
 def get_contestant_dict(elements: list, headers: dict) -> dict:
-    """Maps data from a CSV line to a contestant dictionary.
+    """Map data from a CSV line to a contestant dictionary.
 
     Args:
         elements: A list of strings representing the data elements from a CSV line.
@@ -231,18 +237,18 @@ def get_contestant_dict(elements: list, headers: dict) -> dict:
 
     Returns:
         A dictionary containing the contestant's data.
+
     """
-    request_body = {
+    return {
         "bib": int(elements[headers["bib"]]),
         "start_time": elements[headers["scheduled_start_time"]],
         "name": elements[headers["name"]],
         "club": elements[headers["club"]],
     }
-    return request_body
 
 
 def add_seconds_to_time(time_str: str, seconds_to_add: int) -> str:
-    """Adds seconds to a time string in the format HH:MM:SS.
+    """Add seconds to a time string in the format HH:MM:SS.
 
     Args:
         time_str: The time string in HH:MM:SS format.
@@ -250,12 +256,12 @@ def add_seconds_to_time(time_str: str, seconds_to_add: int) -> str:
 
     Returns:
         A str where given seconds are added.
+
     """
     try:
         time_obj = datetime.datetime.fromisoformat(time_str)
         new_datetime_obj = time_obj + datetime.timedelta(seconds=seconds_to_add)
-        new_time_str = new_datetime_obj.isoformat()
-        return new_time_str
+        return new_datetime_obj.isoformat()
     except ValueError:
-        logging.error(f"Invalid time format: {time_str}. Using original time.")
+        logging.exception(f"Invalid time format: {time_str}. Using original time.")
         return time_str

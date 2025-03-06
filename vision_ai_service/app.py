@@ -2,21 +2,25 @@
 
 import asyncio
 import logging
-from logging.handlers import RotatingFileHandler
 import os
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 from dotenv import load_dotenv
-from vision_ai_service.adapters import ConfigAdapter
-from vision_ai_service.adapters import EventsAdapter
-from vision_ai_service.adapters import StatusAdapter
-from vision_ai_service.adapters import UserAdapter
+
+from vision_ai_service.adapters import (
+    ConfigAdapter,
+    EventsAdapter,
+    StatusAdapter,
+    UserAdapter,
+)
 from vision_ai_service.services import VideoAIService
 from vision_ai_service.services.simulate_service import SimulateService
 
 # get base settings
 load_dotenv()
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
-photos_file_path = f"{os.getcwd()}/vision_ai_service/files"
+CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
+photos_file_path = f"{Path.cwd()}/vision_ai_service/files"
 event = {"id": ""}
 status_type = ""
 
@@ -37,45 +41,14 @@ logging.getLogger().addHandler(file_handler)
 
 
 async def main() -> None:
-    """CLI for analysing video stream."""  # noqa: D301
+    """CLI for analysing video stream."""
+    token = ""
+    event = {}
+    status_type = ""
     try:
         # login to data-source
-        login_success = False
-        event_found = False
-        event = {}
-        status_type = ""
-        uid = os.getenv("ADMIN_USERNAME", "a")
-        pw = os.getenv("ADMIN_PASSWORD", ".")
-        while not login_success:
-            try:
-                token = await UserAdapter().login(uid, pw)
-                if token:
-                    login_success = True
-                    break
-            except Exception as e:
-                logging.error(f"{e}")
-            logging.info("Vision AI is waiting for db connection")
-            await asyncio.sleep(5)
-
-        while not event_found:
-            try:
-                event = await get_event(token)
-                status_type = await ConfigAdapter().get_config(
-                    token, event, "VIDEO_ANALYTICS_STATUS_TYPE"
-                )
-                if event:
-                    event_found = True
-                    information = (
-                        f"Vision AI is ready! - {event['name']}, {event['date']}"
-                    )
-                    await StatusAdapter().create_status(
-                        token, event, status_type, information
-                    )
-                    break
-            except Exception as e:
-                logging.error(f"{e}")
-            logging.info("Vision AI is waiting for an event to work on.")
-            await asyncio.sleep(5)
+        token = await do_login()
+        event = await get_event(token)
 
         # service ready!
         await ConfigAdapter().update_config(
@@ -110,8 +83,8 @@ async def main() -> None:
                         token, event, "VIDEO_ANALYTICS_RUNNING", "False"
                     )
             except Exception as e:
-                logging.error(f"{e}")
                 err_string = str(e)
+                logging.exception(err_string)
                 await StatusAdapter().create_status(
                     token,
                     event,
@@ -127,7 +100,8 @@ async def main() -> None:
             logging.info("Vision AI er klar til å starte analyse.")
             await asyncio.sleep(5)
     except Exception as e:
-        logging.error(f"{e}")
+        err_string = str(e)
+        logging.exception(err_string)
         await StatusAdapter().create_status(
             token, event, status_type, f"Critical Error - exiting program: {err_string}"
         )
@@ -137,25 +111,63 @@ async def main() -> None:
     logging.info("Goodbye!")
 
 
+async def do_login() -> str:
+    """Login to data-source."""
+    uid = os.getenv("ADMIN_USERNAME", "a")
+    pw = os.getenv("ADMIN_PASSWORD", ".")
+    while True:
+        try:
+            token = await UserAdapter().login(uid, pw)
+            if token:
+                return token
+        except Exception as e:
+            err_string = str(e)
+            logging.exception(err_string)
+        logging.info("Vision AI is waiting for db connection")
+        await asyncio.sleep(5)
+
+
+
 async def get_event(token: str) -> dict:
     """Get event_details - use info from config and db."""
     event = {}
-    events_db = await EventsAdapter().get_all_events(token)
-    event_id_config = os.getenv("EVENT_ID")
-    if len(events_db) == 1:
-        event = events_db[0]
-    elif len(events_db) == 0:
-        event["id"] = event_id_config
-    else:
-        for _event in events_db:
-            if _event["id"] == event_id_config:
-                event = _event
-                break
-        else:
-            if event_id_config:
+    event_found = False
+    while not event_found:
+        try:
+            events_db = await EventsAdapter().get_all_events(token)
+            event_id_config = os.getenv("EVENT_ID")
+            if len(events_db) == 1:
+                event = events_db[0]
+            elif len(events_db) == 0:
                 event["id"] = event_id_config
             else:
-                event["id"] = events_db[0]["id"]
+                for _event in events_db:
+                    if _event["id"] == event_id_config:
+                        event = _event
+                        break
+                else:
+                    if event_id_config:
+                        event["id"] = event_id_config
+                    else:
+                        event["id"] = events_db[0]["id"]
+            status_type = await ConfigAdapter().get_config(
+                token, event, "VIDEO_ANALYTICS_STATUS_TYPE"
+            )
+            if event:
+                event_found = True
+                information = (
+                    f"Vision AI is ready! - {event['name']}, {event['date']}"
+                )
+                await StatusAdapter().create_status(
+                    token, event, status_type, information
+                )
+                break
+        except Exception as e:
+            err_string = str(e)
+            logging.exception(err_string)
+        logging.info("Vision AI is waiting for an event to work on.")
+        await asyncio.sleep(5)
+
     return event
 
 

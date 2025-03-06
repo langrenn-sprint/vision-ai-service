@@ -7,15 +7,19 @@ python3 -m vision_ai_service.app
 But first, start dependencies (services & db):
 docker-compose up event-service user-service photo-service mongodb
 
-## Development Requirements
+## Requirement for development
 
-- [pyenv](https://github.com/pyenv/pyenv-installer)
-- [pipx](https://github.com/pipxproject/pipx)
-- [poetry](https://python-poetry.org/)
-- [nox](https://nox.thea.codes/en/stable/)
-- [nox-poetry](https://github.com/cjolowicz/nox-poetry)
-- [pillow](https://pypi.org/project/Pillow/)
+Install [uv](https://docs.astral.sh/uv/), e.g.:
 
+```Zsh
+% curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Then install the dependencies:
+
+```Zsh
+% uv sync
+```
 ### If required - virtual environment
 
 Install: curl <https://pyenv.run> | bash
@@ -27,8 +31,6 @@ Activate:source .vienv/bin/activate
 
 % git clone <https://github.com/heming-langrenn/vision-ai-service.git>
 % cd vision-ai-service
-% pyenv local 3.12
-% poetry install
 
 ### Prepare .env filer (dummy parameter values supplied)
 
@@ -42,13 +44,21 @@ PHOTOS_HOST_PORT=8092
 USERS_HOST_SERVER=localhost
 USERS_HOST_PORT=8086
 
-### Run all sessions
+## Running tests
 
-% nox
+We use [pytest](https://docs.pytest.org/en/latest/) for contract testing.
 
-### Run all tests with coverage reporting
+To run linters, checkers and tests:
 
-% nox -rs tests
+```Zsh
+% uv run poe release
+```
+
+To run tests with logging, do:
+
+```Zsh
+% uv run pytest -m integration -- --log-cli-level=DEBUG
+```
 
 ### Push to docker registry manually (CLI)
 

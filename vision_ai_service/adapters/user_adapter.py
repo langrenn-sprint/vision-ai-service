@@ -2,6 +2,7 @@
 
 import logging
 import os
+from http import HTTPStatus
 
 from aiohttp import ClientSession, hdrs
 from dotenv import load_dotenv
@@ -29,13 +30,12 @@ class UserAdapter:
                 (hdrs.CONTENT_TYPE, "application/json"),
             ]
         )
-        async with ClientSession() as session:
-            async with session.post(
-                f"{USER_SERVICE_URL}/login", headers=headers, json=request_body
-            ) as resp:
-                result = resp.status
-                logging.info(f"do login - got response {result}")
-                if result == 200:
-                    body = await resp.json()
-                    return body["token"]
+        async with ClientSession() as session, session.post(
+            f"{USER_SERVICE_URL}/login", headers=headers, json=request_body
+        ) as resp:
+            result = resp.status
+            logging.info(f"do login - got response {result}")
+            if result == HTTPStatus.OK:
+                body = await resp.json()
+                return body["token"]
         return ""
