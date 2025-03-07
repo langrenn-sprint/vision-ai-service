@@ -1,12 +1,8 @@
-version: '3'
 services:
   vision-ai-service:
     build: .
     image: ghcr.io/langrenn-sprint/vision-ai-service:test
-    ports:
-      - 8080:8080
     environment:
-      - HOST_PORT=8080
       - LOGGING_LEVEL=${LOGGING_LEVEL}
       - EVENTS_HOST_SERVER=event-service
       - EVENTS_HOST_PORT=8080
