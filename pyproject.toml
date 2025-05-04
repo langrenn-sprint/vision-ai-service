@@ -50,6 +50,8 @@ select = ["ALL"]
 # and then manually ignore annoying ones:
 ignore = [
     "ANN401", # Any should be allowed
+    "ASYNC230",
+    "BLE001",
     "D211",
     "D213",
     "COM812",

@@ -3,7 +3,7 @@
 Analyserer en videostrøm for passeringer (people crossing line). Tar skjermbilde av passeringen.
 
 Start service:
-python3 -m vision_ai_service.app
+.venv/bin/python3 -m vision_ai_service.app
 But first, start dependencies (services & db):
 docker-compose up event-service user-service photo-service mongodb
 
@@ -23,9 +23,10 @@ Then install the dependencies:
 ### If required - virtual environment
 
 Install: curl <https://pyenv.run> | bash
-Create: python -m venv .vienv (replace .venv with your preferred name)
+Create: python -m venv .venv (replace .venv with your preferred name)
 Install python 3.12: pyenv install 3.12
-Activate:source .vienv/bin/activate
+Activate:
+source .venv/bin/activate
 
 ### Install
 

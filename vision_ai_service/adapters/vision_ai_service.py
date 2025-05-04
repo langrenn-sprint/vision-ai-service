@@ -58,17 +58,17 @@ class VisionAIService:
     ) -> bool:
         """Check status flags and determine if tracking should continue."""
         stop_tracking = await ConfigAdapter().get_config_bool(
-            token, event, "VIDEO_ANALYTICS_STOP"
+            token, event["id"], "VIDEO_ANALYTICS_STOP"
         )
         if stop_tracking:
             await StatusAdapter().create_status(
-                token, event, status_type, "Video analytics stopped."
+                token, event["id"], status_type, "Video analytics stopped."
             )
             await ConfigAdapter().update_config(
-                token, event, "VIDEO_ANALYTICS_RUNNING", "False"
+                token, event["id"], "VIDEO_ANALYTICS_RUNNING", "False"
             )
             await ConfigAdapter().update_config(
-                token, event, "VIDEO_ANALYTICS_STOP", "False"
+                token, event["id"], "VIDEO_ANALYTICS_STOP", "False"
             )
             return True
         return False
@@ -85,7 +85,7 @@ class VisionAIService:
     async def get_trigger_line_xyxy_list(self, token: str, event: dict) -> list:
         """Get list of trigger line coordinates."""
         trigger_line_xyxy = await ConfigAdapter().get_config(
-            token, event, "TRIGGER_LINE_XYXYN"
+            token, event["id"], "TRIGGER_LINE_XYXYN"
         )
         trigger_line_xyxy_list = []
 

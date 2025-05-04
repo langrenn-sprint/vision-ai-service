@@ -49,13 +49,22 @@ async def main() -> None:
         # login to data-source
         token = await do_login()
         event = await get_event(token)
+        information = (
+            f"vision-ai-service is ready! - {event['name']}, {event['date_of_event']}"
+        )
+        status_type = await ConfigAdapter().get_config(
+            token, event["id"], "VIDEO_ANALYTICS_STATUS_TYPE"
+        )
+        await StatusAdapter().create_status(
+            token, event, status_type, information
+        )
 
         # service ready!
         await ConfigAdapter().update_config(
-            token, event, "VIDEO_ANALYTICS_AVAILABLE", "True"
+            token, event["id"], "VIDEO_ANALYTICS_AVAILABLE", "True"
         )
         while True:
-            ai_config = await get_config(token, event)
+            ai_config = await get_config(token, event["id"])
             try:
                 # run simulation
                 if ai_config["start_simulation"]:
@@ -64,7 +73,7 @@ async def main() -> None:
                     )
                 if ai_config["stop_tracking"]:
                     await ConfigAdapter().update_config(
-                        token, event, "VIDEO_ANALYTICS_STOP", "False"
+                        token, event["id"], "VIDEO_ANALYTICS_STOP", "False"
                     )
                 elif ai_config["analytics_start"]:
                     await VideoAIService().detect_crossings_with_ultraltyics(
@@ -72,7 +81,7 @@ async def main() -> None:
                     )
                 elif ai_config["draw_trigger_line"]:
                     await ConfigAdapter().update_config(
-                        token, event, "DRAW_TRIGGER_LINE", "False"
+                        token, event["id"], "DRAW_TRIGGER_LINE", "False"
                     )
                     await VideoAIService().print_image_with_trigger_line_v2(
                         token, event, status_type, photos_file_path
@@ -80,7 +89,7 @@ async def main() -> None:
                 elif ai_config["analytics_running"]:
                     # should be invalid (no muliti thread) - reset
                     await ConfigAdapter().update_config(
-                        token, event, "VIDEO_ANALYTICS_RUNNING", "False"
+                        token, event["id"], "VIDEO_ANALYTICS_RUNNING", "False"
                     )
             except Exception as e:
                 err_string = str(e)
@@ -92,13 +101,13 @@ async def main() -> None:
                     f"Error in Vision AI: {err_string}",
                 )
                 await ConfigAdapter().update_config(
-                    token, event, "VIDEO_ANALYTICS_RUNNING", "False"
+                    token, event["id"], "VIDEO_ANALYTICS_RUNNING", "False"
                 )
                 await ConfigAdapter().update_config(
-                    token, event, "VIDEO_ANALYTICS_START", "False"
+                    token, event["id"], "VIDEO_ANALYTICS_START", "False"
                 )
             logging.info("Vision AI er klar til å starte analyse.")
-            await asyncio.sleep(5)
+            await asyncio.sleep(15)
     except Exception as e:
         err_string = str(e)
         logging.exception(err_string)
@@ -106,7 +115,7 @@ async def main() -> None:
             token, event, status_type, f"Critical Error - exiting program: {err_string}"
         )
     await ConfigAdapter().update_config(
-        token, event, "VIDEO_ANALYTICS_AVAILABLE", "False"
+        token, event["id"], "VIDEO_ANALYTICS_AVAILABLE", "False"
     )
     logging.info("Goodbye!")
 
@@ -122,17 +131,22 @@ async def do_login() -> str:
                 return token
         except Exception as e:
             err_string = str(e)
-            logging.exception(err_string)
+            logging.info(err_string)
         logging.info("Vision AI is waiting for db connection")
         await asyncio.sleep(5)
 
 
-
 async def get_event(token: str) -> dict:
     """Get event_details - use info from config and db."""
+    def raise_multiple_events_error(events_db: list) -> None:
+        """Raise an exception for multiple events found."""
+        information = (
+            f"Multiple events found. Please specify an EVENT_ID in .env: {events_db}"
+        )
+        raise Exception(information)
+
     event = {}
-    event_found = False
-    while not event_found:
+    while True:
         try:
             events_db = await EventsAdapter().get_all_events(token)
             event_id_config = os.getenv("EVENT_ID")
@@ -146,47 +160,34 @@ async def get_event(token: str) -> dict:
                         event = _event
                         break
                 else:
-                    if event_id_config:
-                        event["id"] = event_id_config
-                    else:
-                        event["id"] = events_db[0]["id"]
-            status_type = await ConfigAdapter().get_config(
-                token, event, "VIDEO_ANALYTICS_STATUS_TYPE"
-            )
+                    raise_multiple_events_error(events_db)
             if event:
-                event_found = True
-                information = (
-                    f"Vision AI is ready! - {event['name']}, {event['date']}"
-                )
-                await StatusAdapter().create_status(
-                    token, event, status_type, information
-                )
                 break
         except Exception as e:
             err_string = str(e)
-            logging.exception(err_string)
-        logging.info("Vision AI is waiting for an event to work on.")
+            logging.info(err_string)
+        logging.info("vision-ai-service is waiting for an event to work on.")
         await asyncio.sleep(5)
 
     return event
 
 
-async def get_config(token: str, event: dict) -> dict:
+async def get_config(token: str, event_id: str) -> dict:
     """Get config details - use info from db."""
     analytics_running = await ConfigAdapter().get_config_bool(
-        token, event, "VIDEO_ANALYTICS_RUNNING"
+        token, event_id, "VIDEO_ANALYTICS_RUNNING"
     )
     analytics_start = await ConfigAdapter().get_config_bool(
-        token, event, "VIDEO_ANALYTICS_START"
+        token, event_id, "VIDEO_ANALYTICS_START"
     )
     stop_tracking = await ConfigAdapter().get_config_bool(
-        token, event, "VIDEO_ANALYTICS_STOP"
+        token, event_id, "VIDEO_ANALYTICS_STOP"
     )
     start_simulation = await ConfigAdapter().get_config_bool(
-        token, event, "SIMULATION_CROSSINGS_START"
+        token, event_id, "SIMULATION_CROSSINGS_START"
     )
     draw_trigger_line = await ConfigAdapter().get_config_bool(
-        token, event, "DRAW_TRIGGER_LINE"
+        token, event_id, "DRAW_TRIGGER_LINE"
     )
     return {
         "analytics_running": analytics_running,

@@ -40,16 +40,16 @@ class SimulateService:
         """
         informasjon = ""
         input_file = await ConfigAdapter().get_config(
-            token, event, "SIMULATION_START_LIST_FILE"
+            token, event["id"], "SIMULATION_START_LIST_FILE"
         )
         await ConfigAdapter().update_config(
-            token, event, "SIMULATION_CROSSINGS_START", "False"
+            token, event["id"], "SIMULATION_CROSSINGS_START", "False"
         )
         camera_location = await ConfigAdapter().get_config(
-            token, event, "CAMERA_LOCATION"
+            token, event["id"], "CAMERA_LOCATION"
         )
         fastest_time = await ConfigAdapter().get_config_int(
-            token, event, "SIMULATION_FASTEST_TIME"
+            token, event["id"], "SIMULATION_FASTEST_TIME"
         )
         try:
             contestants = get_contestant_list(input_file)

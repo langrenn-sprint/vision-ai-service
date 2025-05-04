@@ -52,10 +52,10 @@ class VideoAIService:
         first_detection = True
         informasjon = ""
         camera_location = await ConfigAdapter().get_config(
-            token, event, "CAMERA_LOCATION"
+            token, event["id"], "CAMERA_LOCATION"
         )
-        show_video = await ConfigAdapter().get_config_bool(token, event, "SHOW_VIDEO")
-        video_stream_url = await ConfigAdapter().get_config(token, event, "VIDEO_URL")
+        show_video = await ConfigAdapter().get_config_bool(token, event["id"], "SHOW_VIDEO")
+        video_stream_url = await ConfigAdapter().get_config(token, event["id"], "VIDEO_URL")
         await StatusAdapter().create_status(
             token,
             event,
@@ -63,7 +63,7 @@ class VideoAIService:
             f"Starter AI analyse av <a href={video_stream_url}>video</a>.",
         )
         await ConfigAdapter().update_config(
-            token, event, "VIDEO_ANALYTICS_START", "False"
+            token, event["id"], "VIDEO_ANALYTICS_START", "False"
         )
 
         # Load an official or custom model
@@ -71,7 +71,7 @@ class VideoAIService:
 
         # Define the desired image size as a tuple (width, height)
         image_size = await ConfigAdapter().get_config_img_res_tuple(
-            token, event, "VIDEO_ANALYTICS_IMAGE_SIZE"
+            token, event["id"], "VIDEO_ANALYTICS_IMAGE_SIZE"
         )
         trigger_line = (
             await VisionAIService().get_trigger_line_xyxy_list(
@@ -96,7 +96,7 @@ class VideoAIService:
             raise VideoStreamNotFoundError(informasjon) from e
 
         await ConfigAdapter().update_config(
-            token, event, "VIDEO_ANALYTICS_RUNNING", "True"
+            token, event["id"], "VIDEO_ANALYTICS_RUNNING", "True"
         )
         for result in results:
 
@@ -116,7 +116,7 @@ class VideoAIService:
                 break
 
         await ConfigAdapter().update_config(
-            token, event, "VIDEO_ANALYTICS_RUNNING", "false"
+            token, event["id"], "VIDEO_ANALYTICS_RUNNING", "false"
         )
         await StatusAdapter().create_status(
             token, event, status_type, "Avsluttet AI video analyse."
@@ -220,7 +220,7 @@ class VideoAIService:
         trigger_line_xyxyn = await VisionAIService().get_trigger_line_xyxy_list(
             token, event
         )
-        video_stream_url = await ConfigAdapter().get_config(token, event, "VIDEO_URL")
+        video_stream_url = await ConfigAdapter().get_config(token, event["id"], "VIDEO_URL")
 
         cap = cv2.VideoCapture(video_stream_url)
         # check if video stream is opened
@@ -277,7 +277,7 @@ class VideoAIService:
 
             # save image to file
             trigger_line_config_file = await ConfigAdapter().get_config(
-                token, event, "TRIGGER_LINE_CONFIG_FILE"
+                token, event["id"], "TRIGGER_LINE_CONFIG_FILE"
             )
             file_name = f"{photos_file_path}/{time_text}_{trigger_line_config_file}"
             cv2.imwrite(file_name, cv2.cvtColor(im_rgb, cv2.COLOR_RGB2BGR))  # Convert back to BGR for saving
