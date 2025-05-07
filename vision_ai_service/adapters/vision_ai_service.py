@@ -62,7 +62,7 @@ class VisionAIService:
         )
         if stop_tracking:
             await StatusAdapter().create_status(
-                token, event["id"], status_type, "Video analytics stopped."
+                token, event, status_type, "Video analytics stopped."
             )
             await ConfigAdapter().update_config(
                 token, event["id"], "VIDEO_ANALYTICS_RUNNING", "False"
@@ -119,8 +119,8 @@ class VisionAIService:
 
         # save image to file - full size
         timestamp = current_time.strftime("%Y%m%d_%H%M%S")
-        file_name = f"{photos_file_path}/{camera_location}_{timestamp}_{d_id}"
-        cv2.imwrite(f"{file_name}.jpg", result.orig_img)
+        file_name = f"{photos_file_path}/{camera_location}_{timestamp}_{d_id}.jpg"
+        cv2.imwrite(f"{file_name}", result.orig_img)
 
         # Now insert the EXIF data using piexif
         try:

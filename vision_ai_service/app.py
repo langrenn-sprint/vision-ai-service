@@ -23,6 +23,7 @@ CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}
 photos_file_path = f"{Path.cwd()}/vision_ai_service/files"
 event = {"id": ""}
 status_type = ""
+STATUS_INTERVAL = 60
 
 # set up logging
 LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
@@ -45,6 +46,7 @@ async def main() -> None:
     token = ""
     event = {}
     status_type = ""
+    i = STATUS_INTERVAL
     try:
         # login to data-source
         token = await do_login()
@@ -106,8 +108,15 @@ async def main() -> None:
                 await ConfigAdapter().update_config(
                     token, event["id"], "VIDEO_ANALYTICS_START", "False"
                 )
-            logging.info("Vision AI er klar til å starte analyse.")
-            await asyncio.sleep(15)
+            if i > STATUS_INTERVAL:
+                informasjon = "Vision AI er klar til å starte analyse."
+                await StatusAdapter().create_status(
+                    token, event, status_type, informasjon
+                )
+                i = 0
+            else:
+                i += 1
+            await asyncio.sleep(2)
     except Exception as e:
         err_string = str(e)
         logging.exception(err_string)
@@ -152,9 +161,7 @@ async def get_event(token: str) -> dict:
             event_id_config = os.getenv("EVENT_ID")
             if len(events_db) == 1:
                 event = events_db[0]
-            elif len(events_db) == 0:
-                event["id"] = event_id_config
-            else:
+            elif len(events_db) > 1:
                 for _event in events_db:
                     if _event["id"] == event_id_config:
                         event = _event

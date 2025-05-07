@@ -104,14 +104,9 @@ celerybeat.pid
 
 # Environments
 .env
-.vienv
 env/
-vienv/
 ENV/
 env.bak/
-vienv.bak/
-.virtualvision
-virtualvision/
 
 # Spyder project settings
 .spyderproject
