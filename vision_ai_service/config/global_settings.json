@@ -9,7 +9,6 @@
     "VIDEO_ANALYTICS_STOP": "True",
     "VIDEO_ANALYTICS_STATUS_TYPE": "video_status",
     "VIDEO_ANALYTICS_IMAGE_SIZE": "640x480",
-    "VIDEO_ANALYTICS_DEFAULT_IMAGE_SIZES": "640x480,1280x736,1600x896,1920x1088",
     "DRAW_TRIGGER_LINE": "False",
     "SHOW_VIDEO": "False",
     "VIDEO_URL": "https://harnaes.no/maalfoto/2023SkiMaal.mp4",
